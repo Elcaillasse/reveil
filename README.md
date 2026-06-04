@@ -20,8 +20,10 @@ L'interface principale reprend une composition type réveil nocturne :
 - Le fond est isolé dans une fonction dédiée côté LVGL (`create_sky_background`) et dans une couche CSS dédiée côté prévisualisation (`.sky-background`) pour pouvoir le remplacer plus tard par un thème, une image ou une animation sans déplacer l'interface.
 - Heure principale en grand à gauche.
 - Date au format textuel français sous l'heure (`JEUDI 05 JUIN`).
-- Carte réveil translucide en haut à droite avec l'heure du réveil et le rappel `LUN - VEN`.
+- Carte réveil translucide en haut à droite avec l'heure du prochain réveil actif à se déclencher selon l'heure courante et les jours cochés.
 - Boutons `MENU` et `REVEIL` en bas de l'écran.
+- Le bouton `REVEIL` ouvre maintenant une liste dédiée avec plusieurs réveils, interrupteurs d'activation, suppression et bouton `AJOUTER`.
+- Le bouton `AJOUTER` ouvre un formulaire `NOUVEAU RÉVEIL` permettant de choisir l'heure, les minutes et les jours cochés avant l'enregistrement.
 
 ## Prévisualisation PC
 
@@ -37,8 +39,10 @@ Le fichier `reveil.ino` contient :
 - un tampon de rendu partiel LVGL ;
 - la création de l'écran principal ;
 - une fonction dédiée pour le décor de fond ;
-- l'affichage dynamique de l'heure, de la date et de l'heure du réveil ;
-- des callbacks prêts à étendre pour les futurs écrans `MENU` et réglage du `REVEIL` ;
+- l'affichage dynamique de l'heure, de la date et du prochain réveil actif à déclencher ;
+- un écran `REVEILS` listant les alarmes enregistrées ;
+- un écran `NOUVEAU REVEIL` pour ajouter une alarme avec choix de l'heure, des minutes et des jours ;
+- des callbacks prêts à étendre pour le futur écran `MENU` ;
 - un emplacement `read_touchscreen()` à adapter au contrôleur tactile réel.
 
 ## À adapter au matériel
