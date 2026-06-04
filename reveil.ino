@@ -144,6 +144,7 @@ static uint8_t alarm_count = 2;
 static AlarmState alarm_state = alarms[0];
 static const AlarmState *next_alarm = nullptr;
 static AlarmState draft_alarm;
+static uint8_t editing_alarm_index = MAX_ALARMS;
 static lv_obj_t *edit_day_buttons[DAY_COUNT] = {nullptr};
 
 // Horloge logicielle simple initialisée avec l'heure/date de compilation.
@@ -173,6 +174,7 @@ static void show_menu_screen();
 static void show_alarm_settings_screen();
 static void show_alarm_editor_screen();
 static void create_alarm_row(lv_obj_t *parent, uint8_t index);
+static void alarm_edit_event_cb(lv_event_t *event);
 static void refresh_edit_labels();
 static void refresh_edit_day_buttons();
 static const char *alarm_days_text(const AlarmState &alarm);
@@ -747,11 +749,15 @@ static void create_alarm_row(lv_obj_t *parent, uint8_t index) {
   snprintf(time_text, sizeof(time_text), "%02u:%02u", alarm.hour, alarm.minute);
   lv_label_set_text(time_label, time_text);
   lv_obj_set_pos(time_label, 12, 9);
+  lv_obj_add_flag(time_label, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(time_label, alarm_edit_event_cb, LV_EVENT_CLICKED, reinterpret_cast<void *>(static_cast<uintptr_t>(index)));
 
   lv_obj_t *days_label = lv_label_create(row);
   lv_obj_add_style(days_label, &style_caption_text, 0);
   lv_label_set_text(days_label, alarm_days_text(alarm));
   lv_obj_set_pos(days_label, 13, 42);
+  lv_obj_add_flag(days_label, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(days_label, alarm_edit_event_cb, LV_EVENT_CLICKED, reinterpret_cast<void *>(static_cast<uintptr_t>(index)));
 
   lv_obj_t *switch_bg = lv_btn_create(row);
   lv_obj_remove_style_all(switch_bg);
@@ -785,7 +791,7 @@ static void show_alarm_editor_screen() {
 
   lv_obj_t *title = lv_label_create(alarm_edit_screen);
   lv_obj_add_style(title, &style_caption_text, 0);
-  lv_label_set_text(title, "NOUVEAU REVEIL");
+  lv_label_set_text(title, editing_alarm_index < alarm_count ? "MODIFIER REVEIL" : "NOUVEAU REVEIL");
   lv_obj_set_pos(title, 18, 16);
 
   lv_obj_t *divider_top = lv_obj_create(alarm_edit_screen);
@@ -877,7 +883,7 @@ static void show_alarm_editor_screen() {
   lv_obj_set_pos(save_button, 318, 286);
   lv_obj_set_size(save_button, 150, 30);
   lv_obj_add_event_cb(save_button, save_alarm_event_cb, LV_EVENT_CLICKED, nullptr);
-  create_button_label(save_button, "OK ENREGISTRER");
+  create_button_label(save_button, editing_alarm_index < alarm_count ? "OK MODIFIER" : "OK ENREGISTRER");
 
   refresh_edit_labels();
   refresh_edit_day_buttons();
@@ -976,22 +982,45 @@ static void back_to_main_event_cb(lv_event_t *event) {
 
 static void add_alarm_event_cb(lv_event_t *event) {
   if (lv_event_get_code(event) == LV_EVENT_CLICKED && alarm_count < MAX_ALARMS) {
+    editing_alarm_index = MAX_ALARMS;
     draft_alarm = AlarmState();
     show_alarm_editor_screen();
   }
 }
 
+static void alarm_edit_event_cb(lv_event_t *event) {
+  if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+    const uintptr_t index = reinterpret_cast<uintptr_t>(lv_event_get_user_data(event));
+    if (index < alarm_count) {
+      editing_alarm_index = static_cast<uint8_t>(index);
+      draft_alarm = alarms[editing_alarm_index];
+      show_alarm_editor_screen();
+    }
+  }
+}
+
 static void save_alarm_event_cb(lv_event_t *event) {
-  if (lv_event_get_code(event) == LV_EVENT_CLICKED && alarm_count < MAX_ALARMS) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) {
+    return;
+  }
+
+  if (editing_alarm_index < alarm_count) {
+    alarms[editing_alarm_index] = draft_alarm;
+  } else if (alarm_count < MAX_ALARMS) {
     alarms[alarm_count] = draft_alarm;
     alarm_count++;
-    refresh_next_alarm();
-    show_alarm_settings_screen();
+  } else {
+    return;
   }
+
+  editing_alarm_index = MAX_ALARMS;
+  refresh_next_alarm();
+  show_alarm_settings_screen();
 }
 
 static void cancel_alarm_event_cb(lv_event_t *event) {
   if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+    editing_alarm_index = MAX_ALARMS;
     show_alarm_settings_screen();
   }
 }
