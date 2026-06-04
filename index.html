@@ -8,14 +8,19 @@
     :root {
       --screen-width: 480px;
       --screen-height: 320px;
+      --screen-bg: #05060d;
+      --line: #1c2338;
+      --foreground: #edf2ff;
+      --muted: #8ea1ce;
+      --blue: #3e9cff;
+      --blue-soft: #6fa7ff;
+      --card: #0c0d22;
+      --card-border: #20284b;
       --sky-top: #071126;
       --sky-middle: #080923;
       --sky-bottom: #02040d;
-      --foreground: #edf2ff;
-      --muted: #8ea1ce;
       --panel: rgb(9 20 48 / 68%);
       --panel-border: rgb(70 117 205 / 28%);
-      --accent-blue: #3e9cff;
       --accent-gold: #ffb000;
       --hill-front: #02040b;
       --hill-back: #050b19;
@@ -23,9 +28,7 @@
       --sun-glow: rgb(255 178 26 / 42%);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     html,
     body {
@@ -37,29 +40,25 @@
       display: grid;
       place-items: center;
       padding: 24px;
-      background: #f2f2f2;
+      background: #242424;
       font-family: Montserrat, Arial, Helvetica, sans-serif;
     }
 
-    /*
-      L'arrière-plan est volontairement isolé dans .sky-background et piloté
-      par les variables CSS ci-dessus : il pourra être remplacé plus tard par
-      une image, un thème météo ou une animation sans toucher aux infos.
-    */
     .screen {
       position: relative;
       width: var(--screen-width);
       height: var(--screen-height);
       overflow: hidden;
       color: var(--foreground);
-      background: var(--sky-bottom);
+      background: var(--screen-bg);
       border: 2px solid #1d2434;
       border-radius: 10px;
       box-shadow: 0 12px 32px rgb(0 0 0 / 20%);
     }
 
     .sky-background,
-    .content-layer {
+    .content-layer,
+    .app-page {
       position: absolute;
       inset: 0;
     }
@@ -107,16 +106,6 @@
       box-shadow: 0 0 22px var(--sun-glow);
     }
 
-    .sun::before {
-      content: "";
-      position: absolute;
-      inset: -20px;
-      background: repeating-conic-gradient(from 2deg, rgb(255 183 39 / 70%) 0 3deg, transparent 3deg 24deg);
-      border-radius: 50%;
-      transform: scale(1.08);
-      z-index: -1;
-    }
-
     .moon-dots {
       position: absolute;
       right: -8px;
@@ -133,11 +122,13 @@
       background: #b7c7ff;
     }
 
-    .content-layer {
-      z-index: 1;
-    }
+    .content-layer { z-index: 1; }
+    .app-page { z-index: 2; background: var(--screen-bg); }
+    .hidden { display: none; }
 
-    .eyebrow {
+    .eyebrow,
+    .page-title,
+    .page-count {
       position: absolute;
       color: var(--muted);
       font-size: 9px;
@@ -146,21 +137,18 @@
       text-transform: uppercase;
     }
 
-    .clock-title {
-      left: 22px;
-      top: 15px;
-    }
+    .page-title { left: 18px; top: 16px; }
+    .page-count { right: 18px; top: 16px; color: #294c9d; letter-spacing: 1px; text-transform: none; }
+    .page-line { position: absolute; left: 0; right: 0; top: 39px; height: 1px; background: var(--line); }
+    .page-footer-line { position: absolute; left: 0; right: 0; bottom: 42px; height: 1px; background: var(--line); }
 
-    .alarm-title {
-      right: 26px;
-      top: 15px;
-    }
+    .clock-title { left: 22px; top: 15px; }
+    .alarm-title { right: 26px; top: 15px; }
 
     .clock-label {
       position: absolute;
       left: 18px;
       top: 44px;
-      color: var(--foreground);
       font-size: 80px;
       font-weight: 800;
       line-height: 0.82;
@@ -196,7 +184,6 @@
       display: flex;
       align-items: center;
       gap: 9px;
-      color: var(--foreground);
       font-size: 32px;
       font-weight: 800;
       line-height: 1;
@@ -207,120 +194,259 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--accent-blue);
-      box-shadow: 0 0 10px var(--accent-blue);
+      background: var(--blue);
+      box-shadow: 0 0 10px var(--blue);
+    }
+
+    .alarm-days,
+    .row-days {
+      color: var(--blue-soft);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1px;
     }
 
     .alarm-days {
       display: inline-block;
       margin-top: 11px;
       padding: 2px 8px;
-      color: #6fa7ff;
       background: rgb(28 57 111 / 48%);
       border-radius: 4px;
-      font-size: 9px;
-      font-weight: 800;
-      letter-spacing: 1px;
     }
 
-    .action-button {
-      position: absolute;
-      bottom: 8px;
-      height: 30px;
-      padding: 0 26px;
-      border-radius: 5px;
-      background: rgb(10 33 59 / 86%);
-      color: #a9d6ff;
-      border: 1px solid rgb(45 135 205 / 75%);
+    button {
       font: inherit;
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 1px;
       cursor: pointer;
       user-select: none;
     }
 
-    .action-button:active {
-      filter: brightness(1.18);
+    .action-button,
+    .nav-button,
+    .small-button,
+    .day-button {
+      position: absolute;
+      height: 30px;
+      border-radius: 7px;
+      background: #05060d;
+      color: #fff;
+      border: 1px solid #444b64;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
     }
 
-    .menu-button {
-      left: 145px;
+    .action-button { bottom: 8px; padding: 0 26px; }
+    .menu-button { left: 145px; color: #a9d6ff; border-color: rgb(45 135 205 / 75%); background: rgb(10 33 59 / 86%); }
+    .alarm-button { left: 242px; color: #ffe8a6; border-color: rgb(255 176 0 / 80%); background: rgb(43 29 5 / 86%); }
+
+    .alarm-row {
+      position: absolute;
+      left: 18px;
+      width: 448px;
+      height: 63px;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      background: var(--card);
     }
 
-    .alarm-button {
-      left: 242px;
-      color: #ffe8a6;
-      background: rgb(43 29 5 / 86%);
-      border-color: rgb(255 176 0 / 80%);
+    .alarm-row:nth-of-type(1) { top: 46px; }
+    .row-time {
+      position: absolute;
+      left: 12px;
+      top: 8px;
+      font-size: 25px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 2px;
     }
 
-    .alarm-button::before {
-      content: "";
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      margin-right: 8px;
-      border-radius: 50%;
-      background: var(--accent-gold);
-      box-shadow: 0 0 10px var(--accent-gold);
-      vertical-align: -1px;
-    }
+    .row-days { position: absolute; left: 13px; top: 40px; }
+    .toggle { position: absolute; right: 72px; top: 21px; width: 36px; height: 20px; border: 1px solid #464b63; border-radius: 999px; background: #111321; }
+    .toggle::after { content: ""; position: absolute; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 8px var(--blue); transition: left 120ms ease; }
+    .toggle.on::after { left: 18px; }
+    .toggle:not(.on)::after { left: 3px; background: #555b70; box-shadow: none; }
+    .delete-button { position: absolute; right: 12px; top: 13px; width: 50px; height: 38px; border: 1px solid #42465f; border-radius: 8px; background: #101120; color: #fff; font-size: 17px; font-weight: 900; }
+
+    .nav-button.left { left: 18px; bottom: 8px; width: 106px; }
+    .nav-button.right { right: 14px; bottom: 8px; width: 116px; }
+    .nav-button.cancel { left: 22px; bottom: 6px; width: 116px; }
+    .nav-button.save { right: 14px; bottom: 6px; width: 150px; }
+
+    .picker { position: absolute; inset: 72px 0 auto; height: 132px; display: flex; justify-content: center; gap: 28px; align-items: center; }
+    .time-column { position: relative; width: 82px; height: 132px; }
+    .time-value { position: absolute; left: 0; right: 0; top: 43px; text-align: center; font-size: 54px; font-weight: 900; line-height: 1; letter-spacing: 2px; color: #dde8ff; }
+    .colon { align-self: center; color: #33549a; font-size: 54px; font-weight: 900; margin-top: -2px; }
+    .small-button { left: 20px; width: 42px; padding: 0; }
+    .small-button.up { top: 4px; }
+    .small-button.down { bottom: 0; }
+    .days-picker { position: absolute; left: 105px; top: 216px; display: flex; gap: 6px; }
+    .day-button { position: static; width: 35px; height: 26px; padding: 0; }
+    .day-button.checked { border-color: var(--blue-soft); background: #172a54; }
   </style>
 </head>
 <body>
   <main class="screen" aria-label="Prévisualisation 480 par 320 de l'interface réveil">
     <div class="sky-background" aria-hidden="true">
       <div class="sun"></div>
-      <div class="moon-dots" aria-hidden="true">
-        <span></span><span></span><span></span><span></span><span></span><span></span>
-      </div>
+      <div class="moon-dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
     </div>
 
-    <section class="content-layer" aria-label="Informations du réveil">
+    <section id="homePage" class="content-layer" aria-label="Informations du réveil">
       <div class="eyebrow clock-title">HEURE</div>
       <div id="clockLabel" class="clock-label">--:--</div>
       <div id="dateLabel" class="date-label">--</div>
 
       <div class="eyebrow alarm-title">RÉVEIL</div>
       <aside class="alarm-card" aria-label="Réveil programmé">
-        <div class="alarm-time"><span class="alarm-dot"></span><span id="alarmTimeLabel">08:00</span></div>
-        <div class="alarm-days">LUN - VEN</div>
+        <div class="alarm-time"><span class="alarm-dot"></span><span id="alarmTimeLabel">07:00</span></div>
+        <div id="alarmDaysLabel" class="alarm-days">LUN - VEN</div>
       </aside>
 
       <button id="menuButton" class="action-button menu-button" type="button">MENU</button>
       <button id="alarmButton" class="action-button alarm-button" type="button">RÉVEIL</button>
     </section>
+
+    <section id="listPage" class="app-page hidden" aria-label="Liste des réveils"></section>
+    <section id="editPage" class="app-page hidden" aria-label="Nouveau réveil"></section>
   </main>
 
   <script>
     const clockLabel = document.getElementById('clockLabel');
     const dateLabel = document.getElementById('dateLabel');
     const alarmButton = document.getElementById('alarmButton');
-    const menuButton = document.getElementById('menuButton');
     const alarmTimeLabel = document.getElementById('alarmTimeLabel');
+    const alarmDaysLabel = document.getElementById('alarmDaysLabel');
+    const homePage = document.getElementById('homePage');
+    const listPage = document.getElementById('listPage');
+    const editPage = document.getElementById('editPage');
     const weekdays = ['DIMANCHE', 'LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI'];
     const months = ['JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
+    const shortDays = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
+    let alarms = [
+      { hour: 7, minute: 0, enabled: true, days: [false, true, true, true, true, true, false] },
+      { hour: 9, minute: 0, enabled: true, days: [false, true, true, true, true, true, false] }
+    ];
+    let draftAlarm = null;
 
-    function twoDigits(value) {
-      return String(value).padStart(2, '0');
+    function twoDigits(value) { return String(value).padStart(2, '0'); }
+    function formatTime(alarm) { return `${twoDigits(alarm.hour)}:${twoDigits(alarm.minute)}`; }
+    function formatDays(alarm) {
+      const week = alarm.days.slice(1, 6).every(Boolean) && !alarm.days[0] && !alarm.days[6];
+      const weekend = alarm.days[0] && alarm.days[6] && alarm.days.slice(1, 6).every(day => !day);
+      if (week) return 'LUN - VEN';
+      if (weekend) return 'WEEK-END';
+      const selected = alarm.days.map((enabled, index) => enabled ? shortDays[index] : null).filter(Boolean);
+      return selected.length ? selected.join(' ') : 'AUCUN JOUR';
+    }
+
+    function setPage(page) {
+      homePage.classList.toggle('hidden', page !== 'home');
+      listPage.classList.toggle('hidden', page !== 'list');
+      editPage.classList.toggle('hidden', page !== 'edit');
     }
 
     function updateClockDisplay() {
       const now = new Date();
       clockLabel.textContent = `${twoDigits(now.getHours())}:${twoDigits(now.getMinutes())}`;
       dateLabel.textContent = `${weekdays[now.getDay()]} ${twoDigits(now.getDate())} ${months[now.getMonth()]}`;
-      alarmTimeLabel.textContent = '08:00';
+      const firstAlarm = alarms[0];
+      alarmTimeLabel.textContent = formatTime(firstAlarm);
+      alarmDaysLabel.textContent = formatDays(firstAlarm);
     }
 
-    alarmButton.addEventListener('click', () => {
-      console.log('Ouverture future du réglage du réveil');
-    });
+    function renderAlarmList() {
+      listPage.innerHTML = `
+        <div class="page-title">RÉVEILS</div>
+        <div class="page-count">${alarms.length} réveil${alarms.length > 1 ? 's' : ''}</div>
+        <div class="page-line"></div>
+        <button class="nav-button left" type="button" data-action="home">← RETOUR</button>
+        <button class="nav-button right" type="button" data-action="add">+ AJOUTER</button>
+      `;
 
-    menuButton.addEventListener('click', () => {
-      console.log('Ouverture future de l’écran MENU');
-    });
+      alarms.forEach((alarm, index) => {
+        const row = document.createElement('article');
+        row.className = 'alarm-row';
+        row.style.top = `${46 + index * 72}px`;
+        row.innerHTML = `
+          <div class="row-time">${formatTime(alarm)}</div>
+          <div class="row-days">${formatDays(alarm)}</div>
+          <button class="toggle ${alarm.enabled ? 'on' : ''}" type="button" aria-label="Activer ou désactiver" data-action="toggle" data-index="${index}"></button>
+          <button class="delete-button" type="button" aria-label="Supprimer" data-action="delete" data-index="${index}">⌫</button>
+        `;
+        listPage.append(row);
+      });
 
+      listPage.querySelector('[data-action="home"]').addEventListener('click', () => setPage('home'));
+      listPage.querySelector('[data-action="add"]').addEventListener('click', openEditor);
+      listPage.querySelectorAll('[data-action="toggle"]').forEach(button => button.addEventListener('click', () => {
+        alarms[button.dataset.index].enabled = !alarms[button.dataset.index].enabled;
+        renderAlarmList();
+      }));
+      listPage.querySelectorAll('[data-action="delete"]').forEach(button => button.addEventListener('click', () => {
+        alarms.splice(button.dataset.index, 1);
+        if (!alarms.length) alarms.push({ hour: 8, minute: 0, enabled: true, days: [false, true, true, true, true, true, false] });
+        renderAlarmList();
+        updateClockDisplay();
+      }));
+    }
+
+    function openEditor() {
+      draftAlarm = { hour: 7, minute: 0, enabled: true, days: [false, true, true, true, true, true, false] };
+      renderEditor();
+      setPage('edit');
+    }
+
+    function renderEditor() {
+      editPage.innerHTML = `
+        <div class="page-title">NOUVEAU RÉVEIL</div>
+        <div class="page-line"></div>
+        <div class="picker">
+          <div class="time-column">
+            <button class="small-button up" data-action="hour-up" type="button">▲</button>
+            <div class="time-value">${twoDigits(draftAlarm.hour)}</div>
+            <button class="small-button down" data-action="hour-down" type="button">▼</button>
+          </div>
+          <div class="colon">:</div>
+          <div class="time-column">
+            <button class="small-button up" data-action="minute-up" type="button">▲</button>
+            <div class="time-value">${twoDigits(draftAlarm.minute)}</div>
+            <button class="small-button down" data-action="minute-down" type="button">▼</button>
+          </div>
+        </div>
+        <div class="days-picker">
+          ${shortDays.map((day, index) => `<button class="day-button ${draftAlarm.days[index] ? 'checked' : ''}" data-day="${index}" type="button">${day}</button>`).join('')}
+        </div>
+        <div class="page-footer-line"></div>
+        <button class="nav-button cancel" data-action="cancel" type="button">← ANNULER</button>
+        <button class="nav-button save" data-action="save" type="button">✓ ENREGISTRER</button>
+      `;
+
+      editPage.querySelector('[data-action="hour-up"]').addEventListener('click', () => adjustTime('hour', 1));
+      editPage.querySelector('[data-action="hour-down"]').addEventListener('click', () => adjustTime('hour', -1));
+      editPage.querySelector('[data-action="minute-up"]').addEventListener('click', () => adjustTime('minute', 1));
+      editPage.querySelector('[data-action="minute-down"]').addEventListener('click', () => adjustTime('minute', -1));
+      editPage.querySelector('[data-action="cancel"]').addEventListener('click', () => { renderAlarmList(); setPage('list'); });
+      editPage.querySelector('[data-action="save"]').addEventListener('click', () => {
+        alarms.push(draftAlarm);
+        renderAlarmList();
+        updateClockDisplay();
+        setPage('list');
+      });
+      editPage.querySelectorAll('[data-day]').forEach(button => button.addEventListener('click', () => {
+        draftAlarm.days[button.dataset.day] = !draftAlarm.days[button.dataset.day];
+        renderEditor();
+      }));
+    }
+
+    function adjustTime(part, delta) {
+      if (part === 'hour') draftAlarm.hour = (draftAlarm.hour + delta + 24) % 24;
+      if (part === 'minute') draftAlarm.minute = (draftAlarm.minute + delta + 60) % 60;
+      renderEditor();
+    }
+
+    alarmButton.addEventListener('click', () => { renderAlarmList(); setPage('list'); });
+    document.getElementById('menuButton').addEventListener('click', () => console.log('Ouverture future de l’écran MENU'));
     updateClockDisplay();
     setInterval(updateClockDisplay, 1000);
   </script>
