@@ -1,13 +1,13 @@
 /*
-  Projet : Réveil ESP32-S3 + écran tactile 320x480 (portrait) + LVGL
+  Projet : Réveil ESP32-S3 + écran tactile 480x320 (paysage) + LVGL
 
   Dépendances Arduino IDE :
   - LVGL (bibliothèque "lvgl")
   - TFT_eSPI (à configurer pour votre écran ESP32-S3 dans User_Setup.h)
 
   Notes matérielles :
-  - La dalle est annoncée 480x320, mais l'interface est dessinée en portrait :
-    largeur logique = 320 px, hauteur logique = 480 px.
+  - La dalle est utilisée en paysage : largeur logique = 480 px,
+    hauteur logique = 320 px.
   - La lecture tactile dépend du contrôleur utilisé par votre module. La fonction
     read_touchscreen() contient un emplacement prêt à adapter.
 */
@@ -19,9 +19,9 @@
 // -----------------------------------------------------------------------------
 // Configuration écran / LVGL
 // -----------------------------------------------------------------------------
-static constexpr uint16_t SCREEN_WIDTH = 320;
-static constexpr uint16_t SCREEN_HEIGHT = 480;
-static constexpr uint8_t TFT_ROTATION_PORTRAIT = 0;
+static constexpr uint16_t SCREEN_WIDTH = 480;
+static constexpr uint16_t SCREEN_HEIGHT = 320;
+static constexpr uint8_t TFT_ROTATION_LANDSCAPE = 1;
 
 // Tampon partiel : 40 lignes pour limiter la RAM tout en gardant un bon débit.
 static constexpr uint16_t DRAW_BUFFER_LINES = 40;
@@ -127,7 +127,7 @@ void setup() {
   delay(100);
 
   tft.begin();
-  tft.setRotation(TFT_ROTATION_PORTRAIT);
+  tft.setRotation(TFT_ROTATION_LANDSCAPE);
   tft.fillScreen(TFT_LIGHTGREY);
 
   lv_init();
@@ -180,43 +180,43 @@ void create_main_screen() {
   lv_obj_add_style(main_screen, &style_screen_bg, 0);
   lv_obj_set_size(main_screen, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-  // Zone horloge verte : x=0, y=0, taille 235x115.
+  // Zone horloge verte : x=0, y=0, taille 360x90.
   lv_obj_t *clock_zone = lv_obj_create(main_screen);
   lv_obj_remove_style_all(clock_zone);
   lv_obj_add_style(clock_zone, &style_clock_zone, 0);
   lv_obj_set_pos(clock_zone, 0, 0);
-  lv_obj_set_size(clock_zone, 235, 115);
+  lv_obj_set_size(clock_zone, 360, 90);
 
   clock_label = lv_label_create(clock_zone);
   lv_obj_add_style(clock_label, &style_clock_text, 0);
   lv_label_set_text(clock_label, "--:--");
   lv_obj_center(clock_label);
 
-  // Zone animation rouge/marron : x=0, y=115, taille 235x365.
+  // Zone animation rouge/marron : x=0, y=90, taille 360x230.
   animation_zone = lv_obj_create(main_screen);
   lv_obj_remove_style_all(animation_zone);
   lv_obj_add_style(animation_zone, &style_animation_zone, 0);
-  lv_obj_set_pos(animation_zone, 0, 115);
-  lv_obj_set_size(animation_zone, 235, 365);
+  lv_obj_set_pos(animation_zone, 0, 90);
+  lv_obj_set_size(animation_zone, 360, 230);
 
   lv_obj_t *animation_hint = lv_label_create(animation_zone);
   lv_obj_add_style(animation_hint, &style_small_text, 0);
   lv_label_set_text(animation_hint, "Animation\npixel art");
   lv_obj_center(animation_hint);
 
-  // Colonne droite grise : x=235, y=0, taille 85x480.
+  // Colonne droite grise : x=360, y=0, taille 120x320.
   lv_obj_t *right_column = lv_obj_create(main_screen);
   lv_obj_remove_style_all(right_column);
   lv_obj_add_style(right_column, &style_right_column, 0);
-  lv_obj_set_pos(right_column, 235, 0);
-  lv_obj_set_size(right_column, 85, 480);
+  lv_obj_set_pos(right_column, 360, 0);
+  lv_obj_set_size(right_column, 120, 320);
 
   // Date en haut de la colonne droite, dans un rectangle vert.
   lv_obj_t *date_box = lv_obj_create(right_column);
   lv_obj_remove_style_all(date_box);
   lv_obj_add_style(date_box, &style_date_box, 0);
-  lv_obj_set_pos(date_box, 4, 8);
-  lv_obj_set_size(date_box, 77, 36);
+  lv_obj_set_pos(date_box, 8, 8);
+  lv_obj_set_size(date_box, 104, 40);
 
   date_label = lv_label_create(date_box);
   lv_obj_add_style(date_label, &style_small_text, 0);
@@ -227,8 +227,8 @@ void create_main_screen() {
   alarm_button = lv_btn_create(right_column);
   lv_obj_remove_style_all(alarm_button);
   lv_obj_add_style(alarm_button, &style_button, 0);
-  lv_obj_set_pos(alarm_button, 4, 62);
-  lv_obj_set_size(alarm_button, 77, 48);
+  lv_obj_set_pos(alarm_button, 8, 64);
+  lv_obj_set_size(alarm_button, 104, 52);
   lv_obj_add_event_cb(alarm_button, alarm_button_event_cb, LV_EVENT_CLICKED, nullptr);
 
   lv_obj_t *alarm_button_label = lv_label_create(alarm_button);
@@ -239,8 +239,8 @@ void create_main_screen() {
   // Affichage HH:MM de l'heure du réveil sous le bouton REVEIL.
   alarm_time_label = lv_label_create(right_column);
   lv_obj_add_style(alarm_time_label, &style_small_text, 0);
-  lv_obj_set_pos(alarm_time_label, 9, 122);
-  lv_obj_set_size(alarm_time_label, 67, 32);
+  lv_obj_set_pos(alarm_time_label, 16, 128);
+  lv_obj_set_size(alarm_time_label, 88, 32);
   lv_obj_set_style_text_align(alarm_time_label, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_text(alarm_time_label, "07:30");
 
@@ -248,8 +248,8 @@ void create_main_screen() {
   menu_button = lv_btn_create(right_column);
   lv_obj_remove_style_all(menu_button);
   lv_obj_add_style(menu_button, &style_button, 0);
-  lv_obj_set_pos(menu_button, 4, 424);
-  lv_obj_set_size(menu_button, 77, 48);
+  lv_obj_set_pos(menu_button, 8, 260);
+  lv_obj_set_size(menu_button, 104, 52);
   lv_obj_add_event_cb(menu_button, menu_button_event_cb, LV_EVENT_CLICKED, nullptr);
 
   lv_obj_t *menu_button_label = lv_label_create(menu_button);
