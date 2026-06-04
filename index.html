@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prévisualisation réveil ESP32-S3 LVGL</title>
+  <style>
+    :root {
+      --screen-width: 320px;
+      --screen-height: 480px;
+      --bg-screen: #d8d8d8;
+      --green-zone: #56b85a;
+      --animation-zone: #8f3a2b;
+      --right-column: #bdbdbd;
+      --button-yellow: #ffd84d;
+      --black: #000000;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: #f2f2f2;
+      font-family: Montserrat, Arial, Helvetica, sans-serif;
+    }
+
+    /*
+      Conteneur logique de l'écran : 320x480 px en portrait.
+      Toutes les positions et dimensions ci-dessous reprennent le sketch LVGL.
+    */
+    .screen {
+      position: relative;
+      width: var(--screen-width);
+      height: var(--screen-height);
+      overflow: hidden;
+      background: var(--bg-screen);
+      box-shadow: 0 12px 32px rgb(0 0 0 / 20%);
+    }
+
+    .clock-zone {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 235px;
+      height: 115px;
+      display: grid;
+      place-items: center;
+      background: var(--green-zone);
+    }
+
+    .clock-label {
+      color: var(--black);
+      font-size: 48px;
+      font-weight: 400;
+      line-height: 1;
+      text-align: center;
+      letter-spacing: -1px;
+    }
+
+    .animation-zone {
+      position: absolute;
+      left: 0;
+      top: 115px;
+      width: 235px;
+      height: 365px;
+      display: grid;
+      place-items: center;
+      background: var(--animation-zone);
+      color: var(--black);
+      font-size: 14px;
+      line-height: 1.2;
+      text-align: center;
+      white-space: pre-line;
+    }
+
+    .right-column {
+      position: absolute;
+      left: 235px;
+      top: 0;
+      width: 85px;
+      height: 480px;
+      background: var(--right-column);
+    }
+
+    .date-box {
+      position: absolute;
+      left: 4px;
+      top: 8px;
+      width: 77px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      background: var(--green-zone);
+      border-radius: 4px;
+      color: var(--black);
+      font-size: 14px;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .action-button {
+      position: absolute;
+      left: 4px;
+      width: 77px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 2px solid var(--black);
+      border-radius: 6px;
+      background: var(--button-yellow);
+      color: var(--black);
+      font: inherit;
+      font-size: 16px;
+      line-height: 1;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .action-button:active {
+      filter: brightness(0.94);
+    }
+
+    .alarm-button {
+      top: 62px;
+    }
+
+    .alarm-time {
+      position: absolute;
+      left: 9px;
+      top: 122px;
+      width: 67px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      color: var(--black);
+      font-size: 14px;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .menu-button {
+      top: 424px;
+    }
+  </style>
+</head>
+<body>
+  <main class="screen" aria-label="Prévisualisation 320 par 480 de l'interface réveil">
+    <section class="clock-zone" aria-label="Zone horloge">
+      <div id="clockLabel" class="clock-label">--:--</div>
+    </section>
+
+    <section class="animation-zone" aria-label="Zone animation">Animation
+pixel art</section>
+
+    <aside class="right-column" aria-label="Colonne de contrôles">
+      <div id="dateLabel" class="date-box">--/--/----</div>
+
+      <button id="alarmButton" class="action-button alarm-button" type="button">REVEIL</button>
+
+      <div id="alarmTimeLabel" class="alarm-time">07:30</div>
+
+      <button id="menuButton" class="action-button menu-button" type="button">MENU</button>
+    </aside>
+  </main>
+
+  <script>
+    const clockLabel = document.getElementById('clockLabel');
+    const dateLabel = document.getElementById('dateLabel');
+    const alarmButton = document.getElementById('alarmButton');
+    const menuButton = document.getElementById('menuButton');
+
+    function twoDigits(value) {
+      return String(value).padStart(2, '0');
+    }
+
+    function updateClockDisplay() {
+      const now = new Date();
+      clockLabel.textContent = `${twoDigits(now.getHours())}:${twoDigits(now.getMinutes())}`;
+      dateLabel.textContent = `${twoDigits(now.getDate())}/${twoDigits(now.getMonth() + 1)}/${now.getFullYear()}`;
+    }
+
+    alarmButton.addEventListener('click', () => {
+      console.log('Ouverture future du réglage du réveil');
+    });
+
+    menuButton.addEventListener('click', () => {
+      console.log('Ouverture future de l’écran MENU');
+    });
+
+    updateClockDisplay();
+    setInterval(updateClockDisplay, 1000);
+  </script>
+</body>
+</html>
