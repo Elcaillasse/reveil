@@ -1,6 +1,6 @@
 # Réveil ESP32-S3 LVGL
 
-Projet Arduino IDE pour ESP32-S3 avec écran tactile 320x480 en orientation portrait.
+Projet Arduino IDE pour ESP32-S3 avec écran tactile 480x320 en orientation paysage.
 
 ## Dépendances
 
@@ -14,15 +14,15 @@ Configurez ensuite `TFT_eSPI` pour votre écran ESP32-S3 dans `User_Setup.h` ou 
 ## Interface créée
 
 - Fond général gris clair.
-- Zone horloge verte à gauche : `x=0`, `y=0`, `235x115`.
-- Zone animation rouge/marron à gauche : `x=0`, `y=115`, `235x365`.
-- Colonne droite grise : `x=235`, `y=0`, `85x480`.
+- Zone horloge verte à gauche : `x=0`, `y=0`, `360x90`.
+- Zone animation rouge/marron à gauche : `x=0`, `y=90`, `360x230`.
+- Colonne droite grise : `x=360`, `y=0`, `120x320`.
 - Date `JJ/MM/AAAA` en haut de la colonne droite.
 - Bouton cliquable `REVEIL`, heure de réveil `HH:MM`, puis bouton cliquable `MENU` en bas.
 
 ## Prévisualisation PC
 
-Ouvrez `index.html` directement dans un navigateur pour visualiser une version HTML/CSS de l’interface en taille exacte `320x480`. Cette prévisualisation reprend les mêmes positions, dimensions et couleurs que le sketch LVGL.
+Ouvrez `index.html` directement dans un navigateur pour visualiser une version HTML/CSS de l’interface en taille exacte `480x320`. Cette prévisualisation reprend les mêmes positions, dimensions et couleurs que le sketch LVGL.
 
 ## À adapter selon le matériel
 

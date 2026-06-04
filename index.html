@@ -6,8 +6,8 @@
   <title>Prévisualisation réveil ESP32-S3 LVGL</title>
   <style>
     :root {
-      --screen-width: 320px;
-      --screen-height: 480px;
+      --screen-width: 480px;
+      --screen-height: 320px;
       --bg-screen: #d8d8d8;
       --green-zone: #56b85a;
       --animation-zone: #8f3a2b;
@@ -35,7 +35,7 @@
     }
 
     /*
-      Conteneur logique de l'écran : 320x480 px en portrait.
+      Conteneur logique de l'écran : 480x320 px en paysage.
       Toutes les positions et dimensions ci-dessous reprennent le sketch LVGL.
     */
     .screen {
@@ -51,8 +51,8 @@
       position: absolute;
       left: 0;
       top: 0;
-      width: 235px;
-      height: 115px;
+      width: 360px;
+      height: 90px;
       display: grid;
       place-items: center;
       background: var(--green-zone);
@@ -70,9 +70,9 @@
     .animation-zone {
       position: absolute;
       left: 0;
-      top: 115px;
-      width: 235px;
-      height: 365px;
+      top: 90px;
+      width: 360px;
+      height: 230px;
       display: grid;
       place-items: center;
       background: var(--animation-zone);
@@ -85,19 +85,19 @@
 
     .right-column {
       position: absolute;
-      left: 235px;
+      left: 360px;
       top: 0;
-      width: 85px;
-      height: 480px;
+      width: 120px;
+      height: 320px;
       background: var(--right-column);
     }
 
     .date-box {
       position: absolute;
-      left: 4px;
+      left: 8px;
       top: 8px;
-      width: 77px;
-      height: 36px;
+      width: 104px;
+      height: 40px;
       display: grid;
       place-items: center;
       background: var(--green-zone);
@@ -110,9 +110,9 @@
 
     .action-button {
       position: absolute;
-      left: 4px;
-      width: 77px;
-      height: 48px;
+      left: 8px;
+      width: 104px;
+      height: 52px;
       display: grid;
       place-items: center;
       padding: 0;
@@ -133,14 +133,14 @@
     }
 
     .alarm-button {
-      top: 62px;
+      top: 64px;
     }
 
     .alarm-time {
       position: absolute;
-      left: 9px;
-      top: 122px;
-      width: 67px;
+      left: 16px;
+      top: 128px;
+      width: 88px;
       height: 32px;
       display: grid;
       place-items: center;
@@ -151,12 +151,12 @@
     }
 
     .menu-button {
-      top: 424px;
+      top: 260px;
     }
   </style>
 </head>
 <body>
-  <main class="screen" aria-label="Prévisualisation 320 par 480 de l'interface réveil">
+  <main class="screen" aria-label="Prévisualisation 480 par 320 de l'interface réveil">
     <section class="clock-zone" aria-label="Zone horloge">
       <div id="clockLabel" class="clock-label">--:--</div>
     </section>
