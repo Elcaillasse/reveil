@@ -346,13 +346,40 @@
       editPage.classList.toggle('hidden', page !== 'edit');
     }
 
+    function findNextActiveAlarm(now = new Date()) {
+      const today = now.getDay();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      let nextAlarm = null;
+      let nextDelay = Number.POSITIVE_INFINITY;
+
+      alarms.forEach(alarm => {
+        if (!alarm.enabled) return;
+
+        const alarmMinutes = alarm.hour * 60 + alarm.minute;
+        for (let dayOffset = 0; dayOffset < shortDays.length; dayOffset += 1) {
+          const checkedDay = (today + dayOffset) % shortDays.length;
+          if (!alarm.days[checkedDay]) continue;
+          if (dayOffset === 0 && alarmMinutes < currentMinutes) continue;
+
+          const delay = dayOffset * 24 * 60 + alarmMinutes - (dayOffset === 0 ? currentMinutes : 0);
+          if (delay < nextDelay) {
+            nextDelay = delay;
+            nextAlarm = alarm;
+          }
+          break;
+        }
+      });
+
+      return nextAlarm;
+    }
+
     function updateClockDisplay() {
       const now = new Date();
       clockLabel.textContent = `${twoDigits(now.getHours())}:${twoDigits(now.getMinutes())}`;
       dateLabel.textContent = `${weekdays[now.getDay()]} ${twoDigits(now.getDate())} ${months[now.getMonth()]}`;
-      const firstAlarm = alarms[0];
-      alarmTimeLabel.textContent = formatTime(firstAlarm);
-      alarmDaysLabel.textContent = formatDays(firstAlarm);
+      const nextAlarm = findNextActiveAlarm(now);
+      alarmTimeLabel.textContent = nextAlarm ? formatTime(nextAlarm) : '--:--';
+      alarmDaysLabel.textContent = nextAlarm ? formatDays(nextAlarm) : 'AUCUN';
     }
 
     function renderAlarmList() {
@@ -382,10 +409,10 @@
       listPage.querySelectorAll('[data-action="toggle"]').forEach(button => button.addEventListener('click', () => {
         alarms[button.dataset.index].enabled = !alarms[button.dataset.index].enabled;
         renderAlarmList();
+        updateClockDisplay();
       }));
       listPage.querySelectorAll('[data-action="delete"]').forEach(button => button.addEventListener('click', () => {
         alarms.splice(button.dataset.index, 1);
-        if (!alarms.length) alarms.push({ hour: 8, minute: 0, enabled: true, days: [false, true, true, true, true, true, false] });
         renderAlarmList();
         updateClockDisplay();
       }));
