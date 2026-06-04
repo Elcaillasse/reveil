@@ -49,6 +49,7 @@ static lv_obj_t *alarm_edit_screen = nullptr;
 static lv_obj_t *clock_label = nullptr;
 static lv_obj_t *date_label = nullptr;
 static lv_obj_t *alarm_time_label = nullptr;
+static lv_obj_t *alarm_days_label = nullptr;
 static lv_obj_t *edit_hour_label = nullptr;
 static lv_obj_t *edit_minute_label = nullptr;
 static lv_obj_t *alarm_button = nullptr;
@@ -141,6 +142,7 @@ static AlarmState alarms[MAX_ALARMS] = {
 };
 static uint8_t alarm_count = 2;
 static AlarmState alarm_state = alarms[0];
+static const AlarmState *next_alarm = nullptr;
 static AlarmState draft_alarm;
 static lv_obj_t *edit_day_buttons[DAY_COUNT] = {nullptr};
 
@@ -174,6 +176,8 @@ static void create_alarm_row(lv_obj_t *parent, uint8_t index);
 static void refresh_edit_labels();
 static void refresh_edit_day_buttons();
 static const char *alarm_days_text(const AlarmState &alarm);
+static const AlarmState *find_next_active_alarm();
+static void refresh_next_alarm();
 static void load_screen(lv_obj_t *screen);
 static void alarm_button_event_cb(lv_event_t *event);
 static void menu_button_event_cb(lv_event_t *event);
@@ -298,15 +302,15 @@ void create_main_screen() {
 
   alarm_time_label = lv_label_create(alarm_card);
   lv_obj_add_style(alarm_time_label, &style_alarm_text, 0);
-  lv_label_set_text(alarm_time_label, "08:00");
+  lv_label_set_text(alarm_time_label, "--:--");
   lv_obj_set_pos(alarm_time_label, 31, 10);
   lv_obj_set_size(alarm_time_label, 106, 34);
 
-  lv_obj_t *alarm_days = lv_label_create(alarm_card);
-  lv_obj_add_style(alarm_days, &style_alarm_day_chip, 0);
-  lv_label_set_text(alarm_days, "LUN - VEN");
-  lv_obj_set_pos(alarm_days, 14, 51);
-  lv_obj_set_size(alarm_days, 62, 16);
+  alarm_days_label = lv_label_create(alarm_card);
+  lv_obj_add_style(alarm_days_label, &style_alarm_day_chip, 0);
+  lv_label_set_text(alarm_days_label, "--");
+  lv_obj_set_pos(alarm_days_label, 14, 51);
+  lv_obj_set_size(alarm_days_label, 84, 16);
 
   menu_button = lv_btn_create(main_screen);
   lv_obj_remove_style_all(menu_button);
@@ -330,7 +334,7 @@ void create_main_screen() {
   lv_obj_set_size(button_dot, 8, 8);
   create_button_label(alarm_button, "REVEIL");
 
-load_screen(main_screen);
+  load_screen(main_screen);
   update_clock_display();
 }
 
@@ -407,14 +411,13 @@ void update_clock_display() {
 
   static int16_t previous_minute = -1;
   static uint8_t previous_day = 0;
-  static uint8_t previous_alarm_hour = 255;
-  static uint8_t previous_alarm_minute = 255;
 
   if (clock_label != nullptr && previous_minute != clock_state.minute) {
     char time_text[6];
     snprintf(time_text, sizeof(time_text), "%02u:%02u", clock_state.hour, clock_state.minute);
     lv_label_set_text(clock_label, time_text);
     previous_minute = clock_state.minute;
+    refresh_next_alarm();
   }
 
   if (date_label != nullptr && previous_day != clock_state.day) {
@@ -427,13 +430,20 @@ void update_clock_display() {
     previous_day = clock_state.day;
   }
 
-  if (alarm_time_label != nullptr &&
-      (previous_alarm_hour != alarm_state.hour || previous_alarm_minute != alarm_state.minute)) {
-    char alarm_text[6];
-    snprintf(alarm_text, sizeof(alarm_text), "%02u:%02u", alarm_state.hour, alarm_state.minute);
-    lv_label_set_text(alarm_time_label, alarm_text);
-    previous_alarm_hour = alarm_state.hour;
-    previous_alarm_minute = alarm_state.minute;
+  if (alarm_time_label != nullptr) {
+    if (next_alarm != nullptr) {
+      char alarm_text[6];
+      snprintf(alarm_text, sizeof(alarm_text), "%02u:%02u", next_alarm->hour, next_alarm->minute);
+      lv_label_set_text(alarm_time_label, alarm_text);
+      if (alarm_days_label != nullptr) {
+        lv_label_set_text(alarm_days_label, alarm_days_text(*next_alarm));
+      }
+    } else {
+      lv_label_set_text(alarm_time_label, "--:--");
+      if (alarm_days_label != nullptr) {
+        lv_label_set_text(alarm_days_label, "AUCUN");
+      }
+    }
   }
 }
 
@@ -907,6 +917,49 @@ static const char *alarm_days_text(const AlarmState &alarm) {
   return "PERSO";
 }
 
+static const AlarmState *find_next_active_alarm() {
+  const uint8_t today = weekday_from_date(clock_state.year, clock_state.month, clock_state.day);
+  const uint16_t current_minutes = static_cast<uint16_t>(clock_state.hour) * 60 + clock_state.minute;
+  const AlarmState *candidate = nullptr;
+  uint16_t candidate_delay_minutes = UINT16_MAX;
+
+  for (uint8_t index = 0; index < alarm_count; index++) {
+    const AlarmState &alarm = alarms[index];
+    if (!alarm.enabled) {
+      continue;
+    }
+
+    const uint16_t alarm_minutes = static_cast<uint16_t>(alarm.hour) * 60 + alarm.minute;
+    for (uint8_t day_offset = 0; day_offset < DAY_COUNT; day_offset++) {
+      const uint8_t checked_day = (today + day_offset) % DAY_COUNT;
+      if (!alarm.days[checked_day]) {
+        continue;
+      }
+
+      if (day_offset == 0 && alarm_minutes < current_minutes) {
+        continue;
+      }
+
+      const uint16_t delay_minutes = static_cast<uint16_t>(day_offset) * 24 * 60 +
+                                     alarm_minutes - (day_offset == 0 ? current_minutes : 0);
+      if (delay_minutes < candidate_delay_minutes) {
+        candidate_delay_minutes = delay_minutes;
+        candidate = &alarm;
+      }
+      break;
+    }
+  }
+
+  return candidate;
+}
+
+static void refresh_next_alarm() {
+  next_alarm = find_next_active_alarm();
+  if (next_alarm != nullptr) {
+    alarm_state = *next_alarm;
+  }
+}
+
 static void load_screen(lv_obj_t *screen) {
 #if LVGL_VERSION_MAJOR >= 9
   lv_screen_load(screen);
@@ -932,7 +985,7 @@ static void save_alarm_event_cb(lv_event_t *event) {
   if (lv_event_get_code(event) == LV_EVENT_CLICKED && alarm_count < MAX_ALARMS) {
     alarms[alarm_count] = draft_alarm;
     alarm_count++;
-    alarm_state = alarms[0];
+    refresh_next_alarm();
     show_alarm_settings_screen();
   }
 }
@@ -971,7 +1024,7 @@ static void alarm_toggle_event_cb(lv_event_t *event) {
     const uintptr_t index = reinterpret_cast<uintptr_t>(lv_event_get_user_data(event));
     if (index < alarm_count) {
       alarms[index].enabled = !alarms[index].enabled;
-      alarm_state = alarms[0];
+      refresh_next_alarm();
       show_alarm_settings_screen();
     }
   }
@@ -985,9 +1038,7 @@ static void alarm_delete_event_cb(lv_event_t *event) {
         alarms[cursor] = alarms[cursor + 1];
       }
       alarm_count--;
-      if (alarm_count > 0) {
-        alarm_state = alarms[0];
-      }
+      refresh_next_alarm();
       show_alarm_settings_screen();
     }
   }
