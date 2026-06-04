@@ -8,12 +8,19 @@
     :root {
       --screen-width: 480px;
       --screen-height: 320px;
-      --bg-screen: #d8d8d8;
-      --green-zone: #56b85a;
-      --animation-zone: #8f3a2b;
-      --right-column: #bdbdbd;
-      --button-yellow: #ffd84d;
-      --black: #000000;
+      --sky-top: #071126;
+      --sky-middle: #080923;
+      --sky-bottom: #02040d;
+      --foreground: #edf2ff;
+      --muted: #8ea1ce;
+      --panel: rgb(9 20 48 / 68%);
+      --panel-border: rgb(70 117 205 / 28%);
+      --accent-blue: #3e9cff;
+      --accent-gold: #ffb000;
+      --hill-front: #02040b;
+      --hill-back: #050b19;
+      --sun: #ffb21a;
+      --sun-glow: rgb(255 178 26 / 42%);
     }
 
     * {
@@ -35,144 +42,255 @@
     }
 
     /*
-      Conteneur logique de l'écran : 480x320 px en paysage.
-      Toutes les positions et dimensions ci-dessous reprennent le sketch LVGL.
+      L'arrière-plan est volontairement isolé dans .sky-background et piloté
+      par les variables CSS ci-dessus : il pourra être remplacé plus tard par
+      une image, un thème météo ou une animation sans toucher aux infos.
     */
     .screen {
       position: relative;
       width: var(--screen-width);
       height: var(--screen-height);
       overflow: hidden;
-      background: var(--bg-screen);
+      color: var(--foreground);
+      background: var(--sky-bottom);
+      border: 2px solid #1d2434;
+      border-radius: 10px;
       box-shadow: 0 12px 32px rgb(0 0 0 / 20%);
     }
 
-    .clock-zone {
+    .sky-background,
+    .content-layer {
       position: absolute;
-      left: 0;
-      top: 0;
-      width: 360px;
-      height: 90px;
-      display: grid;
-      place-items: center;
-      background: var(--green-zone);
+      inset: 0;
+    }
+
+    .sky-background {
+      z-index: 0;
+      background:
+        radial-gradient(circle at 23% 46%, var(--sun-glow) 0 8%, transparent 16%),
+        linear-gradient(180deg, var(--sky-top) 0%, var(--sky-middle) 58%, var(--sky-bottom) 100%);
+    }
+
+    .sky-background::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle, #dbe8ff 0 1px, transparent 1.6px),
+        radial-gradient(circle, #85a4df 0 1px, transparent 1.5px),
+        radial-gradient(circle, #ffffff 0 1px, transparent 1.4px);
+      background-position: 8px 27px, 36px 14px, 90px 7px;
+      background-size: 48px 63px, 67px 82px, 112px 96px;
+      opacity: 0.85;
+    }
+
+    .sky-background::after {
+      content: "";
+      position: absolute;
+      inset: auto -20px 0 -20px;
+      height: 104px;
+      background:
+        radial-gradient(85px 24px at 20% 70%, var(--hill-back) 0 99%, transparent 100%),
+        radial-gradient(118px 28px at 61% 62%, var(--hill-back) 0 99%, transparent 100%),
+        radial-gradient(140px 32px at 86% 72%, var(--hill-back) 0 99%, transparent 100%),
+        linear-gradient(180deg, transparent 0 42%, var(--hill-front) 43% 100%);
+    }
+
+    .sun {
+      position: absolute;
+      left: 80px;
+      top: 118px;
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 35%, #ffd979 0 14%, var(--sun) 48%, #d67d00 100%);
+      box-shadow: 0 0 22px var(--sun-glow);
+    }
+
+    .sun::before {
+      content: "";
+      position: absolute;
+      inset: -20px;
+      background: repeating-conic-gradient(from 2deg, rgb(255 183 39 / 70%) 0 3deg, transparent 3deg 24deg);
+      border-radius: 50%;
+      transform: scale(1.08);
+      z-index: -1;
+    }
+
+    .moon-dots {
+      position: absolute;
+      right: -8px;
+      top: 72px;
+      display: flex;
+      gap: 4px;
+      opacity: 0.28;
+    }
+
+    .moon-dots span {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #b7c7ff;
+    }
+
+    .content-layer {
+      z-index: 1;
+    }
+
+    .eyebrow {
+      position: absolute;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+
+    .clock-title {
+      left: 22px;
+      top: 15px;
+    }
+
+    .alarm-title {
+      right: 26px;
+      top: 15px;
     }
 
     .clock-label {
-      color: var(--black);
-      font-size: 48px;
-      font-weight: 400;
+      position: absolute;
+      left: 18px;
+      top: 44px;
+      color: var(--foreground);
+      font-size: 80px;
+      font-weight: 800;
+      line-height: 0.82;
+      letter-spacing: 2px;
+      text-shadow: 0 2px 12px rgb(70 122 255 / 18%);
+    }
+
+    .date-label {
+      position: absolute;
+      left: 23px;
+      top: 125px;
+      color: #a9b9eb;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .alarm-card {
+      position: absolute;
+      right: 18px;
+      top: 34px;
+      width: 150px;
+      height: 78px;
+      padding: 10px 12px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      box-shadow: inset 0 0 20px rgb(35 79 160 / 14%);
+    }
+
+    .alarm-time {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--foreground);
+      font-size: 32px;
+      font-weight: 800;
       line-height: 1;
-      text-align: center;
-      letter-spacing: -1px;
+      letter-spacing: 1px;
     }
 
-    .animation-zone {
-      position: absolute;
-      left: 0;
-      top: 90px;
-      width: 360px;
-      height: 230px;
-      display: grid;
-      place-items: center;
-      background: var(--animation-zone);
-      color: var(--black);
-      font-size: 14px;
-      line-height: 1.2;
-      text-align: center;
-      white-space: pre-line;
+    .alarm-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      box-shadow: 0 0 10px var(--accent-blue);
     }
 
-    .right-column {
-      position: absolute;
-      left: 360px;
-      top: 0;
-      width: 120px;
-      height: 320px;
-      background: var(--right-column);
-    }
-
-    .date-box {
-      position: absolute;
-      left: 8px;
-      top: 8px;
-      width: 104px;
-      height: 40px;
-      display: grid;
-      place-items: center;
-      background: var(--green-zone);
+    .alarm-days {
+      display: inline-block;
+      margin-top: 11px;
+      padding: 2px 8px;
+      color: #6fa7ff;
+      background: rgb(28 57 111 / 48%);
       border-radius: 4px;
-      color: var(--black);
-      font-size: 14px;
-      line-height: 1;
-      text-align: center;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1px;
     }
 
     .action-button {
       position: absolute;
-      left: 8px;
-      width: 104px;
-      height: 52px;
-      display: grid;
-      place-items: center;
-      padding: 0;
-      border: 2px solid var(--black);
-      border-radius: 6px;
-      background: var(--button-yellow);
-      color: var(--black);
+      bottom: 8px;
+      height: 30px;
+      padding: 0 26px;
+      border-radius: 5px;
+      background: rgb(10 33 59 / 86%);
+      color: #a9d6ff;
+      border: 1px solid rgb(45 135 205 / 75%);
       font: inherit;
-      font-size: 16px;
-      line-height: 1;
-      text-align: center;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
       cursor: pointer;
       user-select: none;
     }
 
     .action-button:active {
-      filter: brightness(0.94);
-    }
-
-    .alarm-button {
-      top: 64px;
-    }
-
-    .alarm-time {
-      position: absolute;
-      left: 16px;
-      top: 128px;
-      width: 88px;
-      height: 32px;
-      display: grid;
-      place-items: center;
-      color: var(--black);
-      font-size: 14px;
-      line-height: 1;
-      text-align: center;
+      filter: brightness(1.18);
     }
 
     .menu-button {
-      top: 260px;
+      left: 145px;
+    }
+
+    .alarm-button {
+      left: 242px;
+      color: #ffe8a6;
+      background: rgb(43 29 5 / 86%);
+      border-color: rgb(255 176 0 / 80%);
+    }
+
+    .alarm-button::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: var(--accent-gold);
+      box-shadow: 0 0 10px var(--accent-gold);
+      vertical-align: -1px;
     }
   </style>
 </head>
 <body>
   <main class="screen" aria-label="Prévisualisation 480 par 320 de l'interface réveil">
-    <section class="clock-zone" aria-label="Zone horloge">
+    <div class="sky-background" aria-hidden="true">
+      <div class="sun"></div>
+      <div class="moon-dots" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <section class="content-layer" aria-label="Informations du réveil">
+      <div class="eyebrow clock-title">HEURE</div>
       <div id="clockLabel" class="clock-label">--:--</div>
-    </section>
+      <div id="dateLabel" class="date-label">--</div>
 
-    <section class="animation-zone" aria-label="Zone animation">Animation
-pixel art</section>
-
-    <aside class="right-column" aria-label="Colonne de contrôles">
-      <div id="dateLabel" class="date-box">--/--/----</div>
-
-      <button id="alarmButton" class="action-button alarm-button" type="button">REVEIL</button>
-
-      <div id="alarmTimeLabel" class="alarm-time">07:30</div>
+      <div class="eyebrow alarm-title">RÉVEIL</div>
+      <aside class="alarm-card" aria-label="Réveil programmé">
+        <div class="alarm-time"><span class="alarm-dot"></span><span id="alarmTimeLabel">08:00</span></div>
+        <div class="alarm-days">LUN - VEN</div>
+      </aside>
 
       <button id="menuButton" class="action-button menu-button" type="button">MENU</button>
-    </aside>
+      <button id="alarmButton" class="action-button alarm-button" type="button">RÉVEIL</button>
+    </section>
   </main>
 
   <script>
@@ -180,6 +298,9 @@ pixel art</section>
     const dateLabel = document.getElementById('dateLabel');
     const alarmButton = document.getElementById('alarmButton');
     const menuButton = document.getElementById('menuButton');
+    const alarmTimeLabel = document.getElementById('alarmTimeLabel');
+    const weekdays = ['DIMANCHE', 'LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI'];
+    const months = ['JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
 
     function twoDigits(value) {
       return String(value).padStart(2, '0');
@@ -188,7 +309,8 @@ pixel art</section>
     function updateClockDisplay() {
       const now = new Date();
       clockLabel.textContent = `${twoDigits(now.getHours())}:${twoDigits(now.getMinutes())}`;
-      dateLabel.textContent = `${twoDigits(now.getDate())}/${twoDigits(now.getMonth() + 1)}/${now.getFullYear()}`;
+      dateLabel.textContent = `${weekdays[now.getDay()]} ${twoDigits(now.getDate())} ${months[now.getMonth()]}`;
+      alarmTimeLabel.textContent = '08:00';
     }
 
     alarmButton.addEventListener('click', () => {

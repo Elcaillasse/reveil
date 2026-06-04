@@ -47,21 +47,58 @@ static lv_obj_t *main_screen = nullptr;
 static lv_obj_t *clock_label = nullptr;
 static lv_obj_t *date_label = nullptr;
 static lv_obj_t *alarm_time_label = nullptr;
-static lv_obj_t *animation_zone = nullptr;
 static lv_obj_t *alarm_button = nullptr;
 static lv_obj_t *menu_button = nullptr;
+
+// -----------------------------------------------------------------------------
+// Thème de fond séparé : modifiable/remplaçable plus tard sans déplacer les infos
+// -----------------------------------------------------------------------------
+struct BackgroundTheme {
+  lv_color_t sky_top = lv_color_hex(0x071126);
+  lv_color_t sky_bottom = lv_color_hex(0x02040D);
+  lv_color_t hill_back = lv_color_hex(0x050B19);
+  lv_color_t hill_front = lv_color_hex(0x02040B);
+  lv_color_t sun = lv_color_hex(0xFFB21A);
+  lv_color_t sun_glow = lv_color_hex(0xD98208);
+};
+
+static BackgroundTheme background_theme;
+
+struct StarPoint {
+  lv_coord_t x;
+  lv_coord_t y;
+  uint8_t size;
+  lv_opa_t opacity;
+};
+
+static constexpr StarPoint STARS[] = {
+  {8, 40, 2, LV_OPA_70}, {26, 87, 1, LV_OPA_60}, {46, 25, 1, LV_OPA_50}, {89, 18, 2, LV_OPA_80},
+  {127, 36, 2, LV_OPA_50}, {153, 20, 3, LV_OPA_90}, {189, 62, 1, LV_OPA_70}, {230, 31, 2, LV_OPA_50},
+  {274, 52, 2, LV_OPA_80}, {344, 16, 1, LV_OPA_60}, {363, 10, 2, LV_OPA_70}, {421, 20, 2, LV_OPA_80},
+  {456, 38, 1, LV_OPA_55}, {19, 130, 2, LV_OPA_80}, {52, 165, 1, LV_OPA_40}, {97, 187, 2, LV_OPA_75},
+  {134, 158, 1, LV_OPA_60}, {163, 228, 1, LV_OPA_70}, {224, 198, 2, LV_OPA_85}, {278, 220, 1, LV_OPA_65},
+  {337, 186, 1, LV_OPA_55}, {397, 228, 2, LV_OPA_85}, {438, 240, 1, LV_OPA_70}, {469, 197, 2, LV_OPA_55}
+};
 
 // -----------------------------------------------------------------------------
 // Styles séparés pour garder l'interface lisible et extensible
 // -----------------------------------------------------------------------------
 static lv_style_t style_screen_bg;
-static lv_style_t style_clock_zone;
-static lv_style_t style_animation_zone;
-static lv_style_t style_right_column;
-static lv_style_t style_date_box;
-static lv_style_t style_button;
+static lv_style_t style_background;
+static lv_style_t style_hill_back;
+static lv_style_t style_hill_front;
+static lv_style_t style_sun_glow;
+static lv_style_t style_sun;
+static lv_style_t style_star;
+static lv_style_t style_planet_dot;
+static lv_style_t style_alarm_card;
+static lv_style_t style_alarm_day_chip;
+static lv_style_t style_menu_button;
+static lv_style_t style_alarm_button;
 static lv_style_t style_clock_text;
-static lv_style_t style_small_text;
+static lv_style_t style_date_text;
+static lv_style_t style_caption_text;
+static lv_style_t style_alarm_text;
 static lv_style_t style_button_text;
 
 // -----------------------------------------------------------------------------
@@ -76,8 +113,8 @@ enum class AppScreen : uint8_t {
 static AppScreen current_screen = AppScreen::Main;
 
 struct AlarmState {
-  uint8_t hour = 7;
-  uint8_t minute = 30;
+  uint8_t hour = 8;
+  uint8_t minute = 0;
   bool enabled = true;
 };
 
@@ -103,6 +140,9 @@ static ClockState clock_state;
 void create_main_screen();
 void update_clock_display();
 static void init_styles();
+static void create_sky_background(lv_obj_t *parent);
+static void create_button_label(lv_obj_t *button, const char *text);
+static uint8_t weekday_from_date(uint16_t year, uint8_t month, uint8_t day);
 static void show_menu_screen();
 static void show_alarm_settings_screen();
 static void alarm_button_event_cb(lv_event_t *event);
@@ -128,7 +168,7 @@ void setup() {
 
   tft.begin();
   tft.setRotation(TFT_ROTATION_LANDSCAPE);
-  tft.fillScreen(TFT_LIGHTGREY);
+  tft.fillScreen(TFT_BLACK);
 
   lv_init();
 
@@ -180,82 +220,77 @@ void create_main_screen() {
   lv_obj_add_style(main_screen, &style_screen_bg, 0);
   lv_obj_set_size(main_screen, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-  // Zone horloge verte : x=0, y=0, taille 360x90.
-  lv_obj_t *clock_zone = lv_obj_create(main_screen);
-  lv_obj_remove_style_all(clock_zone);
-  lv_obj_add_style(clock_zone, &style_clock_zone, 0);
-  lv_obj_set_pos(clock_zone, 0, 0);
-  lv_obj_set_size(clock_zone, 360, 90);
+  // Le ciel, le soleil et les collines sont créés en premier : ils restent un
+  // arrière-plan indépendant que l'on pourra remplacer par un thème dynamique.
+  create_sky_background(main_screen);
 
-  clock_label = lv_label_create(clock_zone);
+  lv_obj_t *hour_caption = lv_label_create(main_screen);
+  lv_obj_add_style(hour_caption, &style_caption_text, 0);
+  lv_label_set_text(hour_caption, "HEURE");
+  lv_obj_set_pos(hour_caption, 22, 15);
+
+  clock_label = lv_label_create(main_screen);
   lv_obj_add_style(clock_label, &style_clock_text, 0);
   lv_label_set_text(clock_label, "--:--");
-  lv_obj_center(clock_label);
+  lv_obj_set_pos(clock_label, 19, 42);
+  lv_obj_set_size(clock_label, 295, 72);
 
-  // Zone animation rouge/marron : x=0, y=90, taille 360x230.
-  animation_zone = lv_obj_create(main_screen);
-  lv_obj_remove_style_all(animation_zone);
-  lv_obj_add_style(animation_zone, &style_animation_zone, 0);
-  lv_obj_set_pos(animation_zone, 0, 90);
-  lv_obj_set_size(animation_zone, 360, 230);
+  date_label = lv_label_create(main_screen);
+  lv_obj_add_style(date_label, &style_date_text, 0);
+  lv_label_set_text(date_label, "--");
+  lv_obj_set_pos(date_label, 23, 125);
+  lv_obj_set_size(date_label, 180, 20);
 
-  lv_obj_t *animation_hint = lv_label_create(animation_zone);
-  lv_obj_add_style(animation_hint, &style_small_text, 0);
-  lv_label_set_text(animation_hint, "Animation\npixel art");
-  lv_obj_center(animation_hint);
+  lv_obj_t *alarm_caption = lv_label_create(main_screen);
+  lv_obj_add_style(alarm_caption, &style_caption_text, 0);
+  lv_label_set_text(alarm_caption, "REVEIL");
+  lv_obj_set_pos(alarm_caption, 420, 15);
 
-  // Colonne droite grise : x=360, y=0, taille 120x320.
-  lv_obj_t *right_column = lv_obj_create(main_screen);
-  lv_obj_remove_style_all(right_column);
-  lv_obj_add_style(right_column, &style_right_column, 0);
-  lv_obj_set_pos(right_column, 360, 0);
-  lv_obj_set_size(right_column, 120, 320);
+  lv_obj_t *alarm_card = lv_obj_create(main_screen);
+  lv_obj_remove_style_all(alarm_card);
+  lv_obj_add_style(alarm_card, &style_alarm_card, 0);
+  lv_obj_set_pos(alarm_card, 318, 34);
+  lv_obj_set_size(alarm_card, 150, 78);
 
-  // Date en haut de la colonne droite, dans un rectangle vert.
-  lv_obj_t *date_box = lv_obj_create(right_column);
-  lv_obj_remove_style_all(date_box);
-  lv_obj_add_style(date_box, &style_date_box, 0);
-  lv_obj_set_pos(date_box, 8, 8);
-  lv_obj_set_size(date_box, 104, 40);
+  lv_obj_t *alarm_dot = lv_obj_create(alarm_card);
+  lv_obj_remove_style_all(alarm_dot);
+  lv_obj_add_style(alarm_dot, &style_planet_dot, 0);
+  lv_obj_set_pos(alarm_dot, 14, 20);
+  lv_obj_set_size(alarm_dot, 8, 8);
 
-  date_label = lv_label_create(date_box);
-  lv_obj_add_style(date_label, &style_small_text, 0);
-  lv_label_set_text(date_label, "--/--/----");
-  lv_obj_center(date_label);
+  alarm_time_label = lv_label_create(alarm_card);
+  lv_obj_add_style(alarm_time_label, &style_alarm_text, 0);
+  lv_label_set_text(alarm_time_label, "08:00");
+  lv_obj_set_pos(alarm_time_label, 31, 10);
+  lv_obj_set_size(alarm_time_label, 106, 34);
 
-  // Bouton REVEIL jaune avec bordure noire.
-  alarm_button = lv_btn_create(right_column);
+  lv_obj_t *alarm_days = lv_label_create(alarm_card);
+  lv_obj_add_style(alarm_days, &style_alarm_day_chip, 0);
+  lv_label_set_text(alarm_days, "LUN - VEN");
+  lv_obj_set_pos(alarm_days, 14, 51);
+  lv_obj_set_size(alarm_days, 62, 16);
+
+  menu_button = lv_btn_create(main_screen);
+  lv_obj_remove_style_all(menu_button);
+  lv_obj_add_style(menu_button, &style_menu_button, 0);
+  lv_obj_set_pos(menu_button, 145, 293);
+  lv_obj_set_size(menu_button, 82, 30);
+  lv_obj_add_event_cb(menu_button, menu_button_event_cb, LV_EVENT_CLICKED, nullptr);
+  create_button_label(menu_button, "MENU");
+
+  alarm_button = lv_btn_create(main_screen);
   lv_obj_remove_style_all(alarm_button);
-  lv_obj_add_style(alarm_button, &style_button, 0);
-  lv_obj_set_pos(alarm_button, 8, 64);
-  lv_obj_set_size(alarm_button, 104, 52);
+  lv_obj_add_style(alarm_button, &style_alarm_button, 0);
+  lv_obj_set_pos(alarm_button, 242, 293);
+  lv_obj_set_size(alarm_button, 102, 30);
   lv_obj_add_event_cb(alarm_button, alarm_button_event_cb, LV_EVENT_CLICKED, nullptr);
 
-  lv_obj_t *alarm_button_label = lv_label_create(alarm_button);
-  lv_obj_add_style(alarm_button_label, &style_button_text, 0);
-  lv_label_set_text(alarm_button_label, "REVEIL");
-  lv_obj_center(alarm_button_label);
-
-  // Affichage HH:MM de l'heure du réveil sous le bouton REVEIL.
-  alarm_time_label = lv_label_create(right_column);
-  lv_obj_add_style(alarm_time_label, &style_small_text, 0);
-  lv_obj_set_pos(alarm_time_label, 16, 128);
-  lv_obj_set_size(alarm_time_label, 88, 32);
-  lv_obj_set_style_text_align(alarm_time_label, LV_TEXT_ALIGN_CENTER, 0);
-  lv_label_set_text(alarm_time_label, "07:30");
-
-  // Bouton MENU en bas de la colonne droite.
-  menu_button = lv_btn_create(right_column);
-  lv_obj_remove_style_all(menu_button);
-  lv_obj_add_style(menu_button, &style_button, 0);
-  lv_obj_set_pos(menu_button, 8, 260);
-  lv_obj_set_size(menu_button, 104, 52);
-  lv_obj_add_event_cb(menu_button, menu_button_event_cb, LV_EVENT_CLICKED, nullptr);
-
-  lv_obj_t *menu_button_label = lv_label_create(menu_button);
-  lv_obj_add_style(menu_button_label, &style_button_text, 0);
-  lv_label_set_text(menu_button_label, "MENU");
-  lv_obj_center(menu_button_label);
+  lv_obj_t *button_dot = lv_obj_create(alarm_button);
+  lv_obj_remove_style_all(button_dot);
+  lv_obj_add_style(button_dot, &style_sun, 0);
+  lv_obj_set_pos(button_dot, 18, 11);
+  lv_obj_set_size(button_dot, 8, 8);
+  create_button_label(alarm_button, "REVEIL");
 
 #if LVGL_VERSION_MAJOR >= 9
   lv_screen_load(main_screen);
@@ -263,6 +298,67 @@ void create_main_screen() {
   lv_scr_load(main_screen);
 #endif
   update_clock_display();
+}
+
+// -----------------------------------------------------------------------------
+// Arrière-plan modifiable séparément des informations affichées au-dessus
+// -----------------------------------------------------------------------------
+static void create_sky_background(lv_obj_t *parent) {
+  lv_obj_t *background = lv_obj_create(parent);
+  lv_obj_remove_style_all(background);
+  lv_obj_add_style(background, &style_background, 0);
+  lv_obj_set_pos(background, 0, 0);
+  lv_obj_set_size(background, SCREEN_WIDTH, SCREEN_HEIGHT);
+  lv_obj_clear_flag(background, LV_OBJ_FLAG_CLICKABLE);
+
+  for (const StarPoint &star : STARS) {
+    lv_obj_t *star_dot = lv_obj_create(background);
+    lv_obj_remove_style_all(star_dot);
+    lv_obj_add_style(star_dot, &style_star, 0);
+    lv_obj_set_style_opa(star_dot, star.opacity, 0);
+    lv_obj_set_pos(star_dot, star.x, star.y);
+    lv_obj_set_size(star_dot, star.size, star.size);
+  }
+
+  lv_obj_t *sun_glow = lv_obj_create(background);
+  lv_obj_remove_style_all(sun_glow);
+  lv_obj_add_style(sun_glow, &style_sun_glow, 0);
+  lv_obj_set_pos(sun_glow, 67, 105);
+  lv_obj_set_size(sun_glow, 94, 94);
+
+  lv_obj_t *sun = lv_obj_create(background);
+  lv_obj_remove_style_all(sun);
+  lv_obj_add_style(sun, &style_sun, 0);
+  lv_obj_set_pos(sun, 81, 119);
+  lv_obj_set_size(sun, 66, 66);
+
+  for (uint8_t index = 0; index < 9; index++) {
+    lv_obj_t *dot = lv_obj_create(background);
+    lv_obj_remove_style_all(dot);
+    lv_obj_add_style(dot, &style_planet_dot, 0);
+    lv_obj_set_style_opa(dot, static_cast<lv_opa_t>(LV_OPA_20 + index * 5), 0);
+    lv_obj_set_pos(dot, 212 + index * 28, 118 - (index % 3) * 8);
+    lv_obj_set_size(dot, 26, 26);
+  }
+
+  lv_obj_t *hill_back = lv_obj_create(background);
+  lv_obj_remove_style_all(hill_back);
+  lv_obj_add_style(hill_back, &style_hill_back, 0);
+  lv_obj_set_pos(hill_back, -35, 238);
+  lv_obj_set_size(hill_back, 550, 65);
+
+  lv_obj_t *hill_front = lv_obj_create(background);
+  lv_obj_remove_style_all(hill_front);
+  lv_obj_add_style(hill_front, &style_hill_front, 0);
+  lv_obj_set_pos(hill_front, -5, 278);
+  lv_obj_set_size(hill_front, 490, 45);
+}
+
+static void create_button_label(lv_obj_t *button, const char *text) {
+  lv_obj_t *label = lv_label_create(button);
+  lv_obj_add_style(label, &style_button_text, 0);
+  lv_label_set_text(label, text);
+  lv_obj_center(label);
 }
 
 // -----------------------------------------------------------------------------
@@ -288,8 +384,11 @@ void update_clock_display() {
   }
 
   if (date_label != nullptr && previous_day != clock_state.day) {
-    char date_text[11];
-    snprintf(date_text, sizeof(date_text), "%02u/%02u/%04u", clock_state.day, clock_state.month, clock_state.year);
+    static constexpr char WEEKDAYS_FR[7][9] = {"DIMANCHE", "LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI", "SAMEDI"};
+    static constexpr char MONTHS_FR[12][10] = {"JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE"};
+    char date_text[24];
+    const uint8_t weekday = weekday_from_date(clock_state.year, clock_state.month, clock_state.day);
+    snprintf(date_text, sizeof(date_text), "%s %02u %s", WEEKDAYS_FR[weekday], clock_state.day, MONTHS_FR[clock_state.month - 1]);
     lv_label_set_text(date_label, date_text);
     previous_day = clock_state.day;
   }
@@ -309,67 +408,145 @@ void update_clock_display() {
 // -----------------------------------------------------------------------------
 static void init_styles() {
   lv_style_init(&style_screen_bg);
-  lv_style_set_bg_color(&style_screen_bg, lv_color_hex(0xD8D8D8));
+  lv_style_set_bg_color(&style_screen_bg, background_theme.sky_bottom);
   lv_style_set_bg_opa(&style_screen_bg, LV_OPA_COVER);
+  lv_style_set_border_width(&style_screen_bg, 0);
+  lv_style_set_radius(&style_screen_bg, 0);
 
-  lv_style_init(&style_clock_zone);
-  lv_style_set_bg_color(&style_clock_zone, lv_color_hex(0x56B85A));
-  lv_style_set_bg_opa(&style_clock_zone, LV_OPA_COVER);
-  lv_style_set_border_width(&style_clock_zone, 0);
-  lv_style_set_radius(&style_clock_zone, 0);
+  lv_style_init(&style_background);
+  lv_style_set_bg_color(&style_background, background_theme.sky_top);
+  lv_style_set_bg_grad_color(&style_background, background_theme.sky_bottom);
+  lv_style_set_bg_grad_dir(&style_background, LV_GRAD_DIR_VER);
+  lv_style_set_bg_opa(&style_background, LV_OPA_COVER);
+  lv_style_set_border_width(&style_background, 0);
+  lv_style_set_radius(&style_background, 0);
 
-  lv_style_init(&style_animation_zone);
-  lv_style_set_bg_color(&style_animation_zone, lv_color_hex(0x8F3A2B));
-  lv_style_set_bg_opa(&style_animation_zone, LV_OPA_COVER);
-  lv_style_set_border_width(&style_animation_zone, 0);
-  lv_style_set_radius(&style_animation_zone, 0);
+  lv_style_init(&style_hill_back);
+  lv_style_set_bg_color(&style_hill_back, background_theme.hill_back);
+  lv_style_set_bg_opa(&style_hill_back, LV_OPA_COVER);
+  lv_style_set_border_width(&style_hill_back, 0);
+  lv_style_set_radius(&style_hill_back, LV_RADIUS_CIRCLE);
 
-  lv_style_init(&style_right_column);
-  lv_style_set_bg_color(&style_right_column, lv_color_hex(0xBDBDBD));
-  lv_style_set_bg_opa(&style_right_column, LV_OPA_COVER);
-  lv_style_set_border_width(&style_right_column, 0);
-  lv_style_set_radius(&style_right_column, 0);
+  lv_style_init(&style_hill_front);
+  lv_style_set_bg_color(&style_hill_front, background_theme.hill_front);
+  lv_style_set_bg_opa(&style_hill_front, LV_OPA_COVER);
+  lv_style_set_border_width(&style_hill_front, 0);
+  lv_style_set_radius(&style_hill_front, 8);
 
-  lv_style_init(&style_date_box);
-  lv_style_set_bg_color(&style_date_box, lv_color_hex(0x56B85A));
-  lv_style_set_bg_opa(&style_date_box, LV_OPA_COVER);
-  lv_style_set_border_width(&style_date_box, 0);
-  lv_style_set_radius(&style_date_box, 4);
+  lv_style_init(&style_sun_glow);
+  lv_style_set_bg_color(&style_sun_glow, background_theme.sun_glow);
+  lv_style_set_bg_opa(&style_sun_glow, LV_OPA_30);
+  lv_style_set_border_width(&style_sun_glow, 0);
+  lv_style_set_radius(&style_sun_glow, LV_RADIUS_CIRCLE);
 
-  lv_style_init(&style_button);
-  lv_style_set_bg_color(&style_button, lv_color_hex(0xFFD84D));
-  lv_style_set_bg_opa(&style_button, LV_OPA_COVER);
-  lv_style_set_border_color(&style_button, lv_color_black());
-  lv_style_set_border_width(&style_button, 2);
-  lv_style_set_radius(&style_button, 6);
-  lv_style_set_pad_all(&style_button, 0);
+  lv_style_init(&style_sun);
+  lv_style_set_bg_color(&style_sun, background_theme.sun);
+  lv_style_set_bg_opa(&style_sun, LV_OPA_COVER);
+  lv_style_set_border_width(&style_sun, 0);
+  lv_style_set_radius(&style_sun, LV_RADIUS_CIRCLE);
+
+  lv_style_init(&style_star);
+  lv_style_set_bg_color(&style_star, lv_color_hex(0xDCE8FF));
+  lv_style_set_bg_opa(&style_star, LV_OPA_COVER);
+  lv_style_set_border_width(&style_star, 0);
+  lv_style_set_radius(&style_star, LV_RADIUS_CIRCLE);
+
+  lv_style_init(&style_planet_dot);
+  lv_style_set_bg_color(&style_planet_dot, lv_color_hex(0xB7C7FF));
+  lv_style_set_bg_opa(&style_planet_dot, LV_OPA_COVER);
+  lv_style_set_border_width(&style_planet_dot, 0);
+  lv_style_set_radius(&style_planet_dot, LV_RADIUS_CIRCLE);
+
+  lv_style_init(&style_alarm_card);
+  lv_style_set_bg_color(&style_alarm_card, lv_color_hex(0x091430));
+  lv_style_set_bg_opa(&style_alarm_card, LV_OPA_70);
+  lv_style_set_border_color(&style_alarm_card, lv_color_hex(0x4675CD));
+  lv_style_set_border_opa(&style_alarm_card, LV_OPA_30);
+  lv_style_set_border_width(&style_alarm_card, 1);
+  lv_style_set_radius(&style_alarm_card, 8);
+  lv_style_set_pad_all(&style_alarm_card, 0);
+
+  lv_style_init(&style_alarm_day_chip);
+  lv_style_set_bg_color(&style_alarm_day_chip, lv_color_hex(0x1C396F));
+  lv_style_set_bg_opa(&style_alarm_day_chip, LV_OPA_50);
+  lv_style_set_radius(&style_alarm_day_chip, 4);
+  lv_style_set_pad_hor(&style_alarm_day_chip, 4);
+  lv_style_set_pad_ver(&style_alarm_day_chip, 2);
+  lv_style_set_text_color(&style_alarm_day_chip, lv_color_hex(0x6FA7FF));
+#if LV_FONT_MONTSERRAT_12
+  lv_style_set_text_font(&style_alarm_day_chip, &lv_font_montserrat_12);
+#else
+  lv_style_set_text_font(&style_alarm_day_chip, LV_FONT_DEFAULT);
+#endif
+
+  lv_style_init(&style_menu_button);
+  lv_style_set_bg_color(&style_menu_button, lv_color_hex(0x0A213B));
+  lv_style_set_bg_opa(&style_menu_button, LV_OPA_90);
+  lv_style_set_border_color(&style_menu_button, lv_color_hex(0x2D87CD));
+  lv_style_set_border_opa(&style_menu_button, LV_OPA_80);
+  lv_style_set_border_width(&style_menu_button, 1);
+  lv_style_set_radius(&style_menu_button, 5);
+  lv_style_set_pad_all(&style_menu_button, 0);
+
+  lv_style_init(&style_alarm_button);
+  lv_style_set_bg_color(&style_alarm_button, lv_color_hex(0x2B1D05));
+  lv_style_set_bg_opa(&style_alarm_button, LV_OPA_90);
+  lv_style_set_border_color(&style_alarm_button, lv_color_hex(0xFFB000));
+  lv_style_set_border_opa(&style_alarm_button, LV_OPA_80);
+  lv_style_set_border_width(&style_alarm_button, 1);
+  lv_style_set_radius(&style_alarm_button, 5);
+  lv_style_set_pad_all(&style_alarm_button, 0);
 
   lv_style_init(&style_clock_text);
-  lv_style_set_text_color(&style_clock_text, lv_color_black());
+  lv_style_set_text_color(&style_clock_text, lv_color_hex(0xEDF2FF));
 #if LV_FONT_MONTSERRAT_48
   lv_style_set_text_font(&style_clock_text, &lv_font_montserrat_48);
 #else
   lv_style_set_text_font(&style_clock_text, LV_FONT_DEFAULT);
 #endif
-  lv_style_set_text_align(&style_clock_text, LV_TEXT_ALIGN_CENTER);
+  lv_style_set_text_align(&style_clock_text, LV_TEXT_ALIGN_LEFT);
+  lv_style_set_text_letter_space(&style_clock_text, 2);
 
-  lv_style_init(&style_small_text);
-  lv_style_set_text_color(&style_small_text, lv_color_black());
-#if LV_FONT_MONTSERRAT_14
-  lv_style_set_text_font(&style_small_text, &lv_font_montserrat_14);
+  lv_style_init(&style_date_text);
+  lv_style_set_text_color(&style_date_text, lv_color_hex(0xA9B9EB));
+#if LV_FONT_MONTSERRAT_12
+  lv_style_set_text_font(&style_date_text, &lv_font_montserrat_12);
+#elif LV_FONT_MONTSERRAT_14
+  lv_style_set_text_font(&style_date_text, &lv_font_montserrat_14);
 #else
-  lv_style_set_text_font(&style_small_text, LV_FONT_DEFAULT);
+  lv_style_set_text_font(&style_date_text, LV_FONT_DEFAULT);
 #endif
-  lv_style_set_text_align(&style_small_text, LV_TEXT_ALIGN_CENTER);
+  lv_style_set_text_letter_space(&style_date_text, 2);
+
+  lv_style_init(&style_caption_text);
+  lv_style_set_text_color(&style_caption_text, lv_color_hex(0x8EA1CE));
+#if LV_FONT_MONTSERRAT_12
+  lv_style_set_text_font(&style_caption_text, &lv_font_montserrat_12);
+#else
+  lv_style_set_text_font(&style_caption_text, LV_FONT_DEFAULT);
+#endif
+  lv_style_set_text_letter_space(&style_caption_text, 4);
+
+  lv_style_init(&style_alarm_text);
+  lv_style_set_text_color(&style_alarm_text, lv_color_hex(0xEDF2FF));
+#if LV_FONT_MONTSERRAT_32
+  lv_style_set_text_font(&style_alarm_text, &lv_font_montserrat_32);
+#elif LV_FONT_MONTSERRAT_28
+  lv_style_set_text_font(&style_alarm_text, &lv_font_montserrat_28);
+#else
+  lv_style_set_text_font(&style_alarm_text, LV_FONT_DEFAULT);
+#endif
+  lv_style_set_text_letter_space(&style_alarm_text, 1);
 
   lv_style_init(&style_button_text);
-  lv_style_set_text_color(&style_button_text, lv_color_black());
-#if LV_FONT_MONTSERRAT_16
-  lv_style_set_text_font(&style_button_text, &lv_font_montserrat_16);
+  lv_style_set_text_color(&style_button_text, lv_color_hex(0xA9D6FF));
+#if LV_FONT_MONTSERRAT_12
+  lv_style_set_text_font(&style_button_text, &lv_font_montserrat_12);
 #else
   lv_style_set_text_font(&style_button_text, LV_FONT_DEFAULT);
 #endif
   lv_style_set_text_align(&style_button_text, LV_TEXT_ALIGN_CENTER);
+  lv_style_set_text_letter_space(&style_button_text, 1);
 }
 
 // -----------------------------------------------------------------------------
@@ -526,12 +703,33 @@ static void tick_clock_one_second() {
   clock_state.year++;
 }
 
-static uint8_t month_from_compile_string(const char *month_text) {
-  const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-  for (uint8_t index = 0; index < 12; index++) {
-    if (strncmp(month_text, months[index], 3) == 0) {
-      return index + 1;
-    }
+// Zeller : retourne 0=dimanche, 1=lundi, ..., 6=samedi.
+static uint8_t weekday_from_date(uint16_t year, uint8_t month, uint8_t day) {
+  uint16_t adjusted_year = year;
+  uint8_t adjusted_month = month;
+  if (adjusted_month < 3) {
+    adjusted_month += 12;
+    adjusted_year--;
   }
+
+  const uint16_t k = adjusted_year % 100;
+  const uint16_t j = adjusted_year / 100;
+  const uint8_t h = (day + ((13 * (adjusted_month + 1)) / 5) + k + (k / 4) + (j / 4) + (5 * j)) % 7;
+  return (h + 6) % 7;
+}
+
+static uint8_t month_from_compile_string(const char *month_text) {
+  if (strcmp(month_text, "Jan") == 0) return 1;
+  if (strcmp(month_text, "Feb") == 0) return 2;
+  if (strcmp(month_text, "Mar") == 0) return 3;
+  if (strcmp(month_text, "Apr") == 0) return 4;
+  if (strcmp(month_text, "May") == 0) return 5;
+  if (strcmp(month_text, "Jun") == 0) return 6;
+  if (strcmp(month_text, "Jul") == 0) return 7;
+  if (strcmp(month_text, "Aug") == 0) return 8;
+  if (strcmp(month_text, "Sep") == 0) return 9;
+  if (strcmp(month_text, "Oct") == 0) return 10;
+  if (strcmp(month_text, "Nov") == 0) return 11;
+  if (strcmp(month_text, "Dec") == 0) return 12;
   return 1;
 }
