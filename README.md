@@ -35,9 +35,9 @@ Pour ajouter des sonneries dans la prévisualisation :
 1. déposez les fichiers audio dans `musiques/` ;
 2. servez le dépôt avec un petit serveur HTTP (par exemple `python3 -m http.server 8000`) et ouvrez `http://localhost:8000`.
 
-La prévisualisation lit automatiquement les fichiers audio exposés par l’index du dossier. `musiques/playlist.json` reste disponible comme liste de secours pour les serveurs qui n’autorisent pas l’affichage du contenu des dossiers.
+La prévisualisation lit automatiquement les fichiers audio exposés par l’index du dossier. Sur GitHub Pages, où cet index n’est pas disponible, l’action GitHub **Synchroniser la playlist des musiques** régénère et enregistre automatiquement `musiques/playlist.json` après chaque ajout, renommage ou suppression dans `musiques/`.
 
-Le bouton **OUVRIR DOSSIER** du menu permet aussi de choisir et écouter temporairement les fichiers d’un dossier local, y compris lorsque `index.html` est ouvert directement.
+Le bouton **SYNCHRONISER** recharge immédiatement cette playlist sans utiliser le cache du navigateur. Le bouton **DOSSIER LOCAL** permet aussi de choisir et écouter temporairement les fichiers d’un dossier local, y compris lorsque `index.html` est ouvert directement.
 
 La prévisualisation HTML sépare également l'arrière-plan (`.sky-background`) du contenu (`.content-layer`) afin de faciliter les futures modifications visuelles.
 
