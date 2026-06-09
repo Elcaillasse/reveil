@@ -301,7 +301,7 @@
     .sync-button, .folder-button { position: static; color: #a9d6ff; border-color: rgb(45 135 205 / 75%); background: rgb(10 33 59 / 86%); }
     .sync-button { width: 105px; }
     .folder-button { width: 128px; }
-    .music-list { position: absolute; left: 18px; right: 18px; top: 96px; bottom: 50px; display: grid; gap: 7px; overflow: auto; scrollbar-width: none; scroll-behavior: smooth; }
+    .music-list { position: absolute; left: 18px; right: 18px; top: 96px; bottom: 50px; display: grid; gap: 7px; overflow: auto; -ms-overflow-style: none; scrollbar-width: none; scroll-behavior: smooth; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
     .music-list::-webkit-scrollbar { display: none; }
     .music-empty { display: grid; place-items: center; height: 100%; border: 1px dashed var(--card-border); border-radius: 8px; color: var(--muted); font-size: 10px; text-align: center; line-height: 1.6; }
     .music-row { min-height: 48px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 7px 9px 7px 12px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--card); }
