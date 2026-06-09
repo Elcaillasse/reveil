@@ -23,7 +23,7 @@ L'interface principale reprend une composition type réveil nocturne :
 - Date au format textuel français sous l'heure (`JEUDI 05 JUIN`).
 - Carte réveil translucide en haut à droite avec le prochain réveil actif à déclencher, calculé selon le jour courant, l'heure courante, les jours cochés et l'état activé/désactivé.
 - Boutons `MENU` et `REVEIL` en bas de l'écran.
-- La page `MENU` affiche un bouton `SONNERIE` avec le choix actuel et le nombre de sonneries disponibles ; ce bouton ouvre la liste compacte permettant d'écouter et de choisir une sonnerie, avec des flèches haut/bas pour la parcourir.
+- La page `MENU` affiche un bouton `SONNERIE` avec le choix actuel et le nombre de sonneries disponibles ; ce bouton ouvre la liste compacte permettant d'écouter et de choisir une sonnerie. Sa barre de défilement reste masquée dans la prévisualisation HTML comme dans LVGL, tandis que le geste tactile vertical et les flèches haut/bas permettent toujours de parcourir la liste.
 - Le bouton `REVEIL` ouvre maintenant une liste dédiée avec plusieurs réveils, interrupteurs d'activation, suppression et bouton `AJOUTER`.
 - Le bouton `AJOUTER` ouvre un formulaire `NOUVEAU RÉVEIL` permettant de choisir l'heure, les minutes et les jours cochés avant l'enregistrement.
 - À l'heure programmée, un réveil actif lance automatiquement la sonnerie choisie. Dans la prévisualisation, elle joue en boucle jusqu'à l'appui sur `ARRÊTER LA SONNERIE`.

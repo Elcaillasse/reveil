@@ -829,6 +829,7 @@ static void show_ringtone_screen() {
   lv_obj_remove_style_all(ringtone_music_list);
   lv_obj_set_pos(ringtone_music_list, 18, 49);
   lv_obj_set_size(ringtone_music_list, 448, 220);
+  lv_obj_add_flag(ringtone_music_list, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_scroll_dir(ringtone_music_list, LV_DIR_VER);
   lv_obj_set_scrollbar_mode(ringtone_music_list, LV_SCROLLBAR_MODE_OFF);
 
