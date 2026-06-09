@@ -33,8 +33,9 @@ Ouvrez `index.html` directement dans un navigateur pour visualiser une version H
 Pour ajouter des sonneries dans la prévisualisation :
 
 1. déposez les fichiers audio dans `musiques/` ;
-2. ajoutez leurs noms dans `musiques/playlist.json` ;
-3. servez le dépôt avec un petit serveur HTTP (par exemple `python3 -m http.server 8000`) et ouvrez `http://localhost:8000`.
+2. servez le dépôt avec un petit serveur HTTP (par exemple `python3 -m http.server 8000`) et ouvrez `http://localhost:8000`.
+
+La prévisualisation lit automatiquement les fichiers audio exposés par l’index du dossier. `musiques/playlist.json` reste disponible comme liste de secours pour les serveurs qui n’autorisent pas l’affichage du contenu des dossiers.
 
 Le bouton **OUVRIR DOSSIER** du menu permet aussi de choisir et écouter temporairement les fichiers d’un dossier local, y compris lorsque `index.html` est ouvert directement.
 

@@ -1,6 +1,8 @@
 # Musiques du réveil
 
-Déposez dans ce dossier les fichiers audio servis avec l'application (`.mp3`, `.wav`, `.ogg`, `.m4a`, `.aac` ou `.flac`), puis ajoutez leurs noms dans `playlist.json` :
+Déposez dans ce dossier les fichiers audio servis avec l'application (`.mp3`, `.wav`, `.ogg`, `.m4a`, `.aac` ou `.flac`). Lorsqu'elle est servie par un serveur qui expose l'index du dossier, la prévisualisation les détecte automatiquement.
+
+Pour un hébergement qui masque le contenu des dossiers, ajoutez aussi leurs noms dans `playlist.json` :
 
 ```json
 [
