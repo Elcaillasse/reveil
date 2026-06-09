@@ -289,9 +289,11 @@
     .day-button.checked { border-color: var(--blue-soft); background: #172a54; }
 
     .menu-list { position: absolute; left: 18px; right: 18px; top: 50px; display: grid; gap: 8px; }
-    .submenu-button { min-height: 58px; padding: 10px 14px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--card); color: var(--foreground); text-align: left; }
+    .submenu-button { position: relative; min-height: 76px; padding: 10px 44px 10px 14px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--card); color: var(--foreground); text-align: left; }
+    .submenu-button::after { content: "›"; position: absolute; right: 16px; top: 50%; color: var(--blue-soft); font-size: 25px; font-weight: 700; transform: translateY(-50%); }
     .submenu-title { display: block; color: #a9d6ff; font-size: 12px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
-    .submenu-description { display: block; margin-top: 6px; color: var(--muted); font-size: 9px; font-weight: 700; }
+    .submenu-current { display: block; max-width: 330px; margin-top: 7px; overflow: hidden; color: var(--foreground); font-size: 11px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .submenu-description { display: block; margin-top: 5px; color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: 0.4px; }
 
     .music-toolbar { position: absolute; left: 18px; right: 18px; top: 50px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .music-help { flex: 1; color: var(--muted); font-size: 8px; line-height: 1.4; letter-spacing: 0.4px; }
@@ -442,13 +444,18 @@
     }
 
     function renderMainMenu() {
+      const selectedTrack = musicTracks.find(track => track.name === selectedRingtone);
+      const currentRingtone = selectedTrack ? selectedTrack.label : 'Aucune sonnerie sélectionnée';
+      const availableChoices = `${musicTracks.length} choix disponible${musicTracks.length > 1 ? 's' : ''}`;
+
       menuPage.innerHTML = `
         <div class="page-title">MENU</div>
         <div class="page-line"></div>
         <div class="menu-list">
           <button class="submenu-button" data-action="ringtone" type="button">
             <span class="submenu-title">SONNERIE</span>
-            <span class="submenu-description">Choisir et écouter la sonnerie du réveil</span>
+            <span class="submenu-current">${currentRingtone}</span>
+            <span class="submenu-description">${availableChoices} · Appuyer pour choisir et écouter</span>
           </button>
         </div>
         <div class="page-footer-line"></div>
@@ -661,7 +668,7 @@
     }
 
     alarmButton.addEventListener('click', () => { renderAlarmList(); setPage('list'); });
-    document.getElementById('menuButton').addEventListener('click', () => { renderMainMenu(); setPage('menu'); });
+    document.getElementById('menuButton').addEventListener('click', async () => { await loadMusicManifest(); renderMainMenu(); setPage('menu'); });
     renderMainMenu();
     updateClockDisplay();
     setInterval(updateClockDisplay, 1000);

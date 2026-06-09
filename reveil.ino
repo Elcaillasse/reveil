@@ -720,6 +720,8 @@ static void back_to_menu_event_cb(lv_event_t *event) {
 
 static void show_menu_screen() {
   current_screen = AppScreen::Menu;
+  scan_music_directory();
+  if (selected_music_index >= static_cast<int8_t>(music_count)) selected_music_index = -1;
 
   menu_screen = lv_obj_create(nullptr);
   lv_obj_remove_style_all(menu_screen);
@@ -742,7 +744,7 @@ static void show_menu_screen() {
   lv_obj_remove_style_all(ringtone_button);
   lv_obj_add_style(ringtone_button, &style_alarm_row, 0);
   lv_obj_set_pos(ringtone_button, 18, 50);
-  lv_obj_set_size(ringtone_button, 448, 58);
+  lv_obj_set_size(ringtone_button, 448, 76);
   lv_obj_add_event_cb(ringtone_button, ringtone_menu_event_cb, LV_EVENT_CLICKED, nullptr);
 
   lv_obj_t *ringtone_title = lv_label_create(ringtone_button);
@@ -750,10 +752,32 @@ static void show_menu_screen() {
   lv_label_set_text(ringtone_title, "SONNERIE");
   lv_obj_set_pos(ringtone_title, 14, 10);
 
+  lv_obj_t *ringtone_current = lv_label_create(ringtone_button);
+  lv_obj_add_style(ringtone_current, &style_button_text, 0);
+  lv_label_set_text(ringtone_current, selected_music_index >= 0
+    ? music_display_name(music_paths[selected_music_index])
+    : "Aucune sonnerie selectionnee");
+  lv_obj_set_pos(ringtone_current, 14, 31);
+  lv_obj_set_width(ringtone_current, 330);
+  lv_label_set_long_mode(ringtone_current, LV_LABEL_LONG_DOT);
+
   lv_obj_t *ringtone_description = lv_label_create(ringtone_button);
   lv_obj_add_style(ringtone_description, &style_caption_text, 0);
-  lv_label_set_text(ringtone_description, "Choisir et ecouter la sonnerie du reveil");
-  lv_obj_set_pos(ringtone_description, 14, 34);
+  char ringtone_description_text[48];
+  snprintf(
+    ringtone_description_text,
+    sizeof(ringtone_description_text),
+    "%u choix disponible%s - appuyer pour choisir",
+    music_count,
+    music_count > 1 ? "s" : ""
+  );
+  lv_label_set_text(ringtone_description, ringtone_description_text);
+  lv_obj_set_pos(ringtone_description, 14, 54);
+
+  lv_obj_t *ringtone_arrow = lv_label_create(ringtone_button);
+  lv_obj_add_style(ringtone_arrow, &style_button_text, 0);
+  lv_label_set_text(ringtone_arrow, ">");
+  lv_obj_align(ringtone_arrow, LV_ALIGN_RIGHT_MID, -16, 0);
 
   lv_obj_t *back_button = lv_btn_create(menu_screen);
   lv_obj_remove_style_all(back_button);
