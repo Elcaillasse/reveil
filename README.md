@@ -23,6 +23,7 @@ L'interface principale reprend une composition type réveil nocturne :
 - Date au format textuel français sous l'heure (`JEUDI 05 JUIN`).
 - Carte réveil translucide en haut à droite avec le prochain réveil actif à déclencher, calculé selon le jour courant, l'heure courante, les jours cochés et l'état activé/désactivé.
 - Boutons `MENU` et `REVEIL` en bas de l'écran.
+- La page `MENU` affiche un bouton `SONNERIE` avec le choix actuel et le nombre de sonneries disponibles ; ce bouton ouvre la liste permettant d'écouter et de choisir une sonnerie.
 - Le bouton `REVEIL` ouvre maintenant une liste dédiée avec plusieurs réveils, interrupteurs d'activation, suppression et bouton `AJOUTER`.
 - Le bouton `AJOUTER` ouvre un formulaire `NOUVEAU RÉVEIL` permettant de choisir l'heure, les minutes et les jours cochés avant l'enregistrement.
 
