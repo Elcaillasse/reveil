@@ -410,8 +410,18 @@
       alarmDaysLabel.textContent = nextAlarm ? formatDays(nextAlarm) : 'AUCUN';
     }
 
+    const supportedMusicPattern = /\.(mp3|wav|ogg|m4a|aac|flac)$/i;
+
     function trackNameFromPath(path) {
       return decodeURIComponent(path.split('/').pop()).replace(/\.[^.]+$/, '');
+    }
+
+    function musicUrlFromPath(path) {
+      return `musiques/${path.split('/').map(encodeURIComponent).join('/')}`;
+    }
+
+    function musicTrack(path, url = musicUrlFromPath(path)) {
+      return { name: path, label: trackNameFromPath(path), url };
     }
 
     function stopPreview() {
@@ -429,7 +439,7 @@
         <div class="page-count">${musicTracks.length} musique${musicTracks.length > 1 ? 's' : ''}</div>
         <div class="page-line"></div>
         <div class="music-toolbar">
-          <div class="music-help">Ajoutez des fichiers au dossier musiques ou ouvrez un dossier pour les écouter.</div>
+          <div class="music-help">Les fichiers audio du dossier musiques sont chargés automatiquement.</div>
           <button class="nav-button folder-button" data-action="folder" type="button">+ OUVRIR DOSSIER</button>
         </div>
         <div class="music-list">
@@ -438,7 +448,7 @@
               <div><div class="music-name">${track.label}</div><div class="music-status">${selectedRingtone === track.name ? 'SONNERIE SÉLECTIONNÉE' : 'DISPONIBLE'}</div></div>
               <button class="music-action ${playingTrackName === track.name ? 'playing' : ''}" data-action="preview" data-track="${track.name}" type="button">${playingTrackName === track.name ? '■ STOP' : '▶ ÉCOUTER'}</button>
               <button class="music-action choose" data-action="choose" data-track="${track.name}" type="button">CHOISIR</button>
-            </article>`).join('') : '<div class="music-empty">Aucune musique trouvée.<br>Ajoutez les fichiers dans musiques/playlist.json<br>ou ouvrez un dossier depuis cet écran.</div>'}
+            </article>`).join('') : '<div class="music-empty">Aucune musique trouvée.<br>Ajoutez des fichiers audio dans le dossier musiques<br>ou ouvrez un dossier depuis cet écran.</div>'}
         </div>
         <div class="page-footer-line"></div>
         <button class="nav-button left" data-action="home" type="button">← RETOUR</button>
@@ -469,21 +479,45 @@
     }
 
     async function loadMusicManifest() {
+      const tracksByName = new Map();
+      const addTrack = track => tracksByName.set(track.name, track);
+
       try {
         const response = await fetch('musiques/playlist.json');
-        if (!response.ok) return;
-        const files = await response.json();
-        musicTracks = files.map(file => ({ name: file, label: trackNameFromPath(file), url: `musiques/${file}` }));
+        if (response.ok) {
+          const files = await response.json();
+          files.filter(file => supportedMusicPattern.test(file)).forEach(file => addTrack(musicTrack(file)));
+        }
       } catch (error) {
-        console.info('Playlist non chargée : ouvrez un dossier depuis le menu.', error);
+        console.info('Playlist de secours non chargée.', error);
       }
+
+      try {
+        const directoryUrl = new URL('musiques/', window.location.href);
+        const response = await fetch(directoryUrl);
+        if (response.ok) {
+          const directoryDocument = new DOMParser().parseFromString(await response.text(), 'text/html');
+          directoryDocument.querySelectorAll('a[href]').forEach(link => {
+            const href = link.getAttribute('href').split(/[?#]/)[0];
+            let fileName;
+            try { fileName = decodeURIComponent(href); } catch (error) { return; }
+            if (!fileName.includes('/') && supportedMusicPattern.test(fileName)) {
+              addTrack(musicTrack(fileName, new URL(href, directoryUrl).href));
+            }
+          });
+        }
+      } catch (error) {
+        console.info('Index du dossier musiques non disponible.', error);
+      }
+
+      musicTracks = [...tracksByName.values()].sort((a, b) => a.label.localeCompare(b.label, 'fr'));
     }
 
     musicFolderInput.addEventListener('change', () => {
       stopPreview();
       musicTracks = [...musicFolderInput.files]
-        .filter(file => file.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(file.name))
-        .map(file => ({ name: file.webkitRelativePath || file.name, label: trackNameFromPath(file.name), url: URL.createObjectURL(file) }));
+        .filter(file => file.type.startsWith('audio/') || supportedMusicPattern.test(file.name))
+        .map(file => musicTrack(file.webkitRelativePath || file.name, URL.createObjectURL(file)));
       renderMusicMenu();
       setPage('menu');
     });
