@@ -288,9 +288,12 @@
     .day-button { position: static; width: 35px; height: 26px; padding: 0; }
     .day-button.checked { border-color: var(--blue-soft); background: #172a54; }
 
-    .music-toolbar { position: absolute; left: 18px; right: 18px; top: 50px; display: flex; align-items: center; justify-content: space-between; }
-    .music-help { max-width: 260px; color: var(--muted); font-size: 9px; line-height: 1.4; letter-spacing: 0.5px; }
-    .folder-button { position: static; width: 154px; color: #a9d6ff; border-color: rgb(45 135 205 / 75%); background: rgb(10 33 59 / 86%); }
+    .music-toolbar { position: absolute; left: 18px; right: 18px; top: 50px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .music-help { flex: 1; color: var(--muted); font-size: 8px; line-height: 1.4; letter-spacing: 0.4px; }
+    .music-toolbar-actions { display: flex; gap: 6px; }
+    .sync-button, .folder-button { position: static; color: #a9d6ff; border-color: rgb(45 135 205 / 75%); background: rgb(10 33 59 / 86%); }
+    .sync-button { width: 105px; }
+    .folder-button { width: 128px; }
     .music-list { position: absolute; left: 18px; right: 18px; top: 96px; bottom: 50px; display: grid; gap: 7px; overflow: auto; }
     .music-empty { display: grid; place-items: center; height: 100%; border: 1px dashed var(--card-border); border-radius: 8px; color: var(--muted); font-size: 10px; text-align: center; line-height: 1.6; }
     .music-row { min-height: 48px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 7px 9px 7px 12px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--card); }
@@ -439,8 +442,11 @@
         <div class="page-count">${musicTracks.length} musique${musicTracks.length > 1 ? 's' : ''}</div>
         <div class="page-line"></div>
         <div class="music-toolbar">
-          <div class="music-help">Les fichiers audio du dossier musiques sont chargés automatiquement.</div>
-          <button class="nav-button folder-button" data-action="folder" type="button">+ OUVRIR DOSSIER</button>
+          <div class="music-help">Ajoutez les fichiers dans musiques : la liste est mise à jour automatiquement.</div>
+          <div class="music-toolbar-actions">
+            <button class="nav-button sync-button" data-action="sync" type="button">↻ SYNCHRONISER</button>
+            <button class="nav-button folder-button" data-action="folder" type="button">+ DOSSIER LOCAL</button>
+          </div>
         </div>
         <div class="music-list">
           ${musicTracks.length ? musicTracks.map(track => `
@@ -455,6 +461,13 @@
       `;
 
       menuPage.querySelector('[data-action="home"]').addEventListener('click', () => setPage('home'));
+      menuPage.querySelector('[data-action="sync"]').addEventListener('click', async button => {
+        button.currentTarget.disabled = true;
+        button.currentTarget.textContent = 'SYNCHRO...';
+        stopPreview();
+        await loadMusicManifest();
+        renderMusicMenu();
+      });
       menuPage.querySelector('[data-action="folder"]').addEventListener('click', () => musicFolderInput.click());
       menuPage.querySelectorAll('[data-action="choose"]').forEach(button => button.addEventListener('click', () => {
         selectedRingtone = button.dataset.track;
@@ -483,7 +496,7 @@
       const addTrack = track => tracksByName.set(track.name, track);
 
       try {
-        const response = await fetch('musiques/playlist.json');
+        const response = await fetch(`musiques/playlist.json?t=${Date.now()}`, { cache: 'no-store' });
         if (response.ok) {
           const files = await response.json();
           files.filter(file => supportedMusicPattern.test(file)).forEach(file => addTrack(musicTrack(file)));
@@ -493,7 +506,7 @@
       }
 
       try {
-        const directoryUrl = new URL('musiques/', window.location.href);
+        const directoryUrl = new URL(`musiques/?t=${Date.now()}`, window.location.href);
         const response = await fetch(directoryUrl);
         if (response.ok) {
           const directoryDocument = new DOMParser().parseFromString(await response.text(), 'text/html');
@@ -622,7 +635,7 @@
     }
 
     alarmButton.addEventListener('click', () => { renderAlarmList(); setPage('list'); });
-    document.getElementById('menuButton').addEventListener('click', () => { renderMusicMenu(); setPage('menu'); });
+    document.getElementById('menuButton').addEventListener('click', async () => { setPage('menu'); await loadMusicManifest(); renderMusicMenu(); });
     loadMusicManifest().then(renderMusicMenu);
     updateClockDisplay();
     setInterval(updateClockDisplay, 1000);
