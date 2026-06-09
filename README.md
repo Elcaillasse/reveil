@@ -23,7 +23,7 @@ L'interface principale reprend une composition type réveil nocturne :
 - Date au format textuel français sous l'heure (`JEUDI 05 JUIN`).
 - Carte réveil translucide en haut à droite avec le prochain réveil actif à déclencher, calculé selon le jour courant, l'heure courante, les jours cochés et l'état activé/désactivé.
 - Boutons `MENU` et `REVEIL` en bas de l'écran.
-- La page `MENU` affiche un bouton `SONNERIE` avec le choix actuel et le nombre de sonneries disponibles ; ce bouton ouvre la liste permettant d'écouter et de choisir une sonnerie.
+- La page `MENU` affiche un bouton `SONNERIE` avec le choix actuel et le nombre de sonneries disponibles ; ce bouton ouvre la liste compacte permettant d'écouter et de choisir une sonnerie, avec des flèches haut/bas pour la parcourir.
 - Le bouton `REVEIL` ouvre maintenant une liste dédiée avec plusieurs réveils, interrupteurs d'activation, suppression et bouton `AJOUTER`.
 - Le bouton `AJOUTER` ouvre un formulaire `NOUVEAU RÉVEIL` permettant de choisir l'heure, les minutes et les jours cochés avant l'enregistrement.
 - À l'heure programmée, un réveil actif lance automatiquement la sonnerie choisie. Dans la prévisualisation, elle joue en boucle jusqu'à l'appui sur `ARRÊTER LA SONNERIE`.
@@ -54,7 +54,7 @@ Le fichier `reveil.ino` contient :
 - l'affichage dynamique de l'heure, de la date et du prochain réveil actif à déclencher ;
 - un écran `REVEILS` listant les alarmes enregistrées ;
 - un écran `NOUVEAU REVEIL` pour ajouter une alarme avec choix de l'heure, des minutes et des jours ;
-- un écran `MENU` avec un sous-menu `SONNERIE` qui parcourt `/musiques` sur une carte SD, propose les fichiers audio reconnus et mémorise le choix courant ;
+- un écran `MENU` avec un sous-menu `SONNERIE` qui parcourt `/musiques` sur une carte SD, propose les fichiers audio reconnus dans une liste compacte navigable avec des flèches haut/bas et mémorise le choix courant ;
 - un point d’intégration `play_music_preview()` appelé pour la préécoute et pour le déclenchement automatique du réveil, à relier au décodeur audio / périphérique I2S propre à la carte ;
 - un emplacement `read_touchscreen()` à adapter au contrôleur tactile réel.
 

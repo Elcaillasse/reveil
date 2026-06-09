@@ -301,13 +301,15 @@
     .sync-button, .folder-button { position: static; color: #a9d6ff; border-color: rgb(45 135 205 / 75%); background: rgb(10 33 59 / 86%); }
     .sync-button { width: 105px; }
     .folder-button { width: 128px; }
-    .music-list { position: absolute; left: 18px; right: 18px; top: 96px; bottom: 50px; display: grid; gap: 7px; overflow: auto; }
+    .music-list { position: absolute; left: 18px; right: 18px; top: 96px; bottom: 50px; display: grid; gap: 7px; overflow: auto; scroll-behavior: smooth; }
     .music-empty { display: grid; place-items: center; height: 100%; border: 1px dashed var(--card-border); border-radius: 8px; color: var(--muted); font-size: 10px; text-align: center; line-height: 1.6; }
     .music-row { min-height: 48px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 7px 9px 7px 12px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--card); }
     .music-row.selected { border-color: var(--blue-soft); background: #101938; }
-    .music-name { overflow: hidden; color: var(--foreground); font-size: 11px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-    .music-status { margin-top: 4px; color: var(--blue-soft); font-size: 8px; font-weight: 700; letter-spacing: 1px; }
-    .music-action { height: 30px; border: 1px solid #42465f; border-radius: 7px; background: #101120; color: #fff; font-size: 9px; font-weight: 800; }
+    .music-name { overflow: hidden; color: var(--foreground); font-size: 9px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .music-status { margin-top: 4px; color: var(--blue-soft); font-size: 7px; font-weight: 700; letter-spacing: 0.7px; }
+    .music-action { height: 30px; border: 1px solid #42465f; border-radius: 7px; background: #101120; color: #fff; font-size: 8px; font-weight: 800; }
+    .music-scroll-controls { position: absolute; right: 18px; bottom: 8px; display: flex; gap: 6px; }
+    .music-scroll-button { position: static; width: 42px; padding: 0; color: #a9d6ff; border-color: rgb(45 135 205 / 75%); background: rgb(10 33 59 / 86%); font-size: 13px; }
     .music-action.choose { color: #ffe8a6; border-color: rgb(255 176 0 / 55%); }
     .music-action.playing { color: #a9d6ff; border-color: var(--blue); }
 
@@ -559,9 +561,16 @@
         </div>
         <div class="page-footer-line"></div>
         <button class="nav-button left" data-action="menu" type="button">← RETOUR</button>
+        <div class="music-scroll-controls" aria-label="Défilement de la liste des musiques">
+          <button class="nav-button music-scroll-button" data-action="scroll-up" type="button" aria-label="Faire défiler les musiques vers le haut">▲</button>
+          <button class="nav-button music-scroll-button" data-action="scroll-down" type="button" aria-label="Faire défiler les musiques vers le bas">▼</button>
+        </div>
       `;
 
       menuPage.querySelector('[data-action="menu"]').addEventListener('click', () => { stopPreview(); renderMainMenu(); });
+      const musicList = menuPage.querySelector('.music-list');
+      menuPage.querySelector('[data-action="scroll-up"]').addEventListener('click', () => musicList.scrollBy({ top: -57, behavior: 'smooth' }));
+      menuPage.querySelector('[data-action="scroll-down"]').addEventListener('click', () => musicList.scrollBy({ top: 57, behavior: 'smooth' }));
       menuPage.querySelector('[data-action="sync"]').addEventListener('click', async button => {
         button.currentTarget.disabled = true;
         button.currentTarget.textContent = 'SYNCHRO...';

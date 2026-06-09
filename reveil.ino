@@ -60,6 +60,7 @@ static lv_obj_t *edit_hour_label = nullptr;
 static lv_obj_t *edit_minute_label = nullptr;
 static lv_obj_t *alarm_button = nullptr;
 static lv_obj_t *menu_button = nullptr;
+static lv_obj_t *ringtone_music_list = nullptr;
 
 // -----------------------------------------------------------------------------
 // Thème de fond séparé : modifiable/remplaçable plus tard sans déplacer les infos
@@ -208,6 +209,8 @@ static void ringtone_menu_event_cb(lv_event_t *event);
 static void back_to_menu_event_cb(lv_event_t *event);
 static void music_preview_event_cb(lv_event_t *event);
 static void music_select_event_cb(lv_event_t *event);
+static void music_scroll_up_event_cb(lv_event_t *event);
+static void music_scroll_down_event_cb(lv_event_t *event);
 static void back_to_main_event_cb(lv_event_t *event);
 static void add_alarm_event_cb(lv_event_t *event);
 static void save_alarm_event_cb(lv_event_t *event);
@@ -822,15 +825,15 @@ static void show_ringtone_screen() {
   lv_obj_set_pos(divider, 0, 39);
   lv_obj_set_size(divider, SCREEN_WIDTH, 1);
 
-  lv_obj_t *music_list = lv_obj_create(menu_screen);
-  lv_obj_remove_style_all(music_list);
-  lv_obj_set_pos(music_list, 18, 49);
-  lv_obj_set_size(music_list, 448, 220);
-  lv_obj_set_scroll_dir(music_list, LV_DIR_VER);
-  lv_obj_set_scrollbar_mode(music_list, LV_SCROLLBAR_MODE_AUTO);
+  ringtone_music_list = lv_obj_create(menu_screen);
+  lv_obj_remove_style_all(ringtone_music_list);
+  lv_obj_set_pos(ringtone_music_list, 18, 49);
+  lv_obj_set_size(ringtone_music_list, 448, 220);
+  lv_obj_set_scroll_dir(ringtone_music_list, LV_DIR_VER);
+  lv_obj_set_scrollbar_mode(ringtone_music_list, LV_SCROLLBAR_MODE_AUTO);
 
   if (!music_sd_ready || music_count == 0) {
-    lv_obj_t *empty_label = lv_label_create(music_list);
+    lv_obj_t *empty_label = lv_label_create(ringtone_music_list);
     lv_obj_add_style(empty_label, &style_date_text, 0);
     lv_label_set_text(empty_label, music_sd_ready
       ? "Ajoutez des fichiers audio dans /musiques"
@@ -839,7 +842,7 @@ static void show_ringtone_screen() {
   }
 
   for (uint8_t index = 0; index < music_count; index++) {
-    lv_obj_t *row = lv_obj_create(music_list);
+    lv_obj_t *row = lv_obj_create(ringtone_music_list);
     lv_obj_remove_style_all(row);
     lv_obj_add_style(row, &style_alarm_row, 0);
     if (selected_music_index == static_cast<int8_t>(index)) {
@@ -850,6 +853,9 @@ static void show_ringtone_screen() {
 
     lv_obj_t *name = lv_label_create(row);
     lv_obj_add_style(name, &style_button_text, 0);
+#if LV_FONT_MONTSERRAT_10
+    lv_obj_set_style_text_font(name, &lv_font_montserrat_10, 0);
+#endif
     lv_label_set_text(name, music_display_name(music_paths[index]));
     lv_obj_set_pos(name, 12, 7);
     lv_obj_set_width(name, 235);
@@ -857,6 +863,10 @@ static void show_ringtone_screen() {
 
     lv_obj_t *status = lv_label_create(row);
     lv_obj_add_style(status, &style_caption_text, 0);
+#if LV_FONT_MONTSERRAT_8
+    lv_obj_set_style_text_font(status, &lv_font_montserrat_8, 0);
+#endif
+    lv_obj_set_style_text_letter_space(status, 1, 0);
     lv_label_set_text(status, selected_music_index == static_cast<int8_t>(index) ? "SONNERIE SELECTIONNEE" : "DISPONIBLE");
     lv_obj_set_pos(status, 12, 29);
 
@@ -884,6 +894,22 @@ static void show_ringtone_screen() {
   lv_obj_set_size(back_button, 106, 30);
   lv_obj_add_event_cb(back_button, back_to_menu_event_cb, LV_EVENT_CLICKED, nullptr);
   create_button_label(back_button, "<- RETOUR");
+
+  lv_obj_t *scroll_up_button = lv_btn_create(menu_screen);
+  lv_obj_remove_style_all(scroll_up_button);
+  lv_obj_add_style(scroll_up_button, &style_outline_button, 0);
+  lv_obj_set_pos(scroll_up_button, 374, 282);
+  lv_obj_set_size(scroll_up_button, 42, 30);
+  lv_obj_add_event_cb(scroll_up_button, music_scroll_up_event_cb, LV_EVENT_CLICKED, nullptr);
+  create_button_label(scroll_up_button, "^");
+
+  lv_obj_t *scroll_down_button = lv_btn_create(menu_screen);
+  lv_obj_remove_style_all(scroll_down_button);
+  lv_obj_add_style(scroll_down_button, &style_outline_button, 0);
+  lv_obj_set_pos(scroll_down_button, 424, 282);
+  lv_obj_set_size(scroll_down_button, 42, 30);
+  lv_obj_add_event_cb(scroll_down_button, music_scroll_down_event_cb, LV_EVENT_CLICKED, nullptr);
+  create_button_label(scroll_down_button, "v");
 
   load_screen(menu_screen);
 }
@@ -964,6 +990,18 @@ static void music_select_event_cb(lv_event_t *event) {
   if (index < music_count) {
     selected_music_index = static_cast<int8_t>(index);
     show_ringtone_screen();
+  }
+}
+
+static void music_scroll_up_event_cb(lv_event_t *event) {
+  if (lv_event_get_code(event) == LV_EVENT_CLICKED && ringtone_music_list != nullptr) {
+    lv_obj_scroll_by(ringtone_music_list, 0, 57, LV_ANIM_ON);
+  }
+}
+
+static void music_scroll_down_event_cb(lv_event_t *event) {
+  if (lv_event_get_code(event) == LV_EVENT_CLICKED && ringtone_music_list != nullptr) {
+    lv_obj_scroll_by(ringtone_music_list, 0, -57, LV_ANIM_ON);
   }
 }
 
