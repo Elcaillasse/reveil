@@ -8,6 +8,7 @@ Installez les bibliothèques suivantes dans l'Arduino IDE :
 
 - `lvgl`
 - `TFT_eSPI`
+- `SD` et `SPI` (fournies avec le cœur ESP32)
 
 Configurez ensuite `TFT_eSPI` pour votre écran ESP32-S3 dans `User_Setup.h` ou via un fichier de configuration équivalent.
 
@@ -29,6 +30,14 @@ L'interface principale reprend une composition type réveil nocturne :
 
 Ouvrez `index.html` directement dans un navigateur pour visualiser une version HTML/CSS de l'interface en taille exacte `480x320`.
 
+Pour ajouter des sonneries dans la prévisualisation :
+
+1. déposez les fichiers audio dans `musiques/` ;
+2. ajoutez leurs noms dans `musiques/playlist.json` ;
+3. servez le dépôt avec un petit serveur HTTP (par exemple `python3 -m http.server 8000`) et ouvrez `http://localhost:8000`.
+
+Le bouton **OUVRIR DOSSIER** du menu permet aussi de choisir et écouter temporairement les fichiers d’un dossier local, y compris lorsque `index.html` est ouvert directement.
+
 La prévisualisation HTML sépare également l'arrière-plan (`.sky-background`) du contenu (`.content-layer`) afin de faciliter les futures modifications visuelles.
 
 ## Sketch Arduino
@@ -42,7 +51,8 @@ Le fichier `reveil.ino` contient :
 - l'affichage dynamique de l'heure, de la date et du prochain réveil actif à déclencher ;
 - un écran `REVEILS` listant les alarmes enregistrées ;
 - un écran `NOUVEAU REVEIL` pour ajouter une alarme avec choix de l'heure, des minutes et des jours ;
-- des callbacks prêts à étendre pour le futur écran `MENU` ;
+- un écran `MENU` qui parcourt `/musiques` sur une carte SD, propose les fichiers audio reconnus et mémorise le choix courant ;
+- un point d’intégration `play_music_preview()` à relier au décodeur audio / périphérique I2S propre à la carte pour la préécoute matérielle ;
 - un emplacement `read_touchscreen()` à adapter au contrôleur tactile réel.
 
 ## À adapter au matériel
@@ -58,3 +68,9 @@ static bool read_touchscreen(uint16_t *x, uint16_t *y) {
   return false;
 }
 ```
+
+## Carte SD et lecture audio
+
+Le sketch utilise le lecteur SD intégré à l’ESP32 avec la broche CS `MUSIC_SD_CS` (valeur par défaut : `10`). Adaptez cette constante à votre câblage et placez les fichiers dans `/musiques` sur la carte SD. Les extensions reconnues sont `.mp3`, `.wav`, `.ogg`, `.m4a`, `.aac` et `.flac`.
+
+La sortie audio dépendant fortement du matériel utilisé (DAC, amplificateur, broches I2S et bibliothèque de décodage), `play_music_preview()` journalise actuellement le morceau demandé. Reliez cette fonction à votre pilote audio pour obtenir la préécoute sur le réveil physique.

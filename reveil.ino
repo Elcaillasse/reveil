@@ -4,6 +4,7 @@
   Dépendances Arduino IDE :
   - LVGL (bibliothèque "lvgl")
   - TFT_eSPI (à configurer pour votre écran ESP32-S3 dans User_Setup.h)
+  - SD et SPI (fournies avec le cœur ESP32)
 
   Notes matérielles :
   - La dalle est utilisée en paysage : largeur logique = 480 px,
@@ -13,6 +14,8 @@
 */
 
 #include <Arduino.h>
+#include <SD.h>
+#include <SPI.h>
 #include <TFT_eSPI.h>
 #include <lvgl.h>
 
@@ -22,6 +25,8 @@
 static constexpr uint16_t SCREEN_WIDTH = 480;
 static constexpr uint16_t SCREEN_HEIGHT = 320;
 static constexpr uint8_t TFT_ROTATION_LANDSCAPE = 1;
+static constexpr uint8_t MUSIC_SD_CS = 10;
+static constexpr char MUSIC_DIRECTORY[] = "/musiques";
 
 // Tampon partiel : 40 lignes pour limiter la RAM tout en gardant un bon débit.
 static constexpr uint16_t DRAW_BUFFER_LINES = 40;
@@ -46,6 +51,7 @@ static lv_indev_t *touch_indev = nullptr;
 static lv_obj_t *main_screen = nullptr;
 static lv_obj_t *alarm_list_screen = nullptr;
 static lv_obj_t *alarm_edit_screen = nullptr;
+static lv_obj_t *menu_screen = nullptr;
 static lv_obj_t *clock_label = nullptr;
 static lv_obj_t *date_label = nullptr;
 static lv_obj_t *alarm_time_label = nullptr;
@@ -128,6 +134,13 @@ static AppScreen current_screen = AppScreen::Main;
 
 static constexpr uint8_t MAX_ALARMS = 5;
 static constexpr uint8_t DAY_COUNT = 7;
+static constexpr uint8_t MAX_MUSIC_TRACKS = 12;
+static constexpr size_t MUSIC_PATH_LENGTH = 96;
+
+static char music_paths[MAX_MUSIC_TRACKS][MUSIC_PATH_LENGTH] = {};
+static uint8_t music_count = 0;
+static int8_t selected_music_index = -1;
+static bool music_sd_ready = false;
 
 struct AlarmState {
   uint8_t hour = 8;
@@ -172,6 +185,10 @@ static void create_button_label(lv_obj_t *button, const char *text);
 static uint8_t weekday_from_date(uint16_t year, uint8_t month, uint8_t day);
 static void show_menu_screen();
 static void show_alarm_settings_screen();
+static void scan_music_directory();
+static bool is_supported_music_file(const char *name);
+static const char *music_display_name(const char *path);
+static void play_music_preview(const char *path);
 static void show_alarm_editor_screen();
 static void create_alarm_row(lv_obj_t *parent, uint8_t index);
 static void alarm_edit_event_cb(lv_event_t *event);
@@ -183,6 +200,8 @@ static void refresh_next_alarm();
 static void load_screen(lv_obj_t *screen);
 static void alarm_button_event_cb(lv_event_t *event);
 static void menu_button_event_cb(lv_event_t *event);
+static void music_preview_event_cb(lv_event_t *event);
+static void music_select_event_cb(lv_event_t *event);
 static void back_to_main_event_cb(lv_event_t *event);
 static void add_alarm_event_cb(lv_event_t *event);
 static void save_alarm_event_cb(lv_event_t *event);
@@ -240,6 +259,10 @@ void setup() {
 #endif
 
   init_clock_from_compile_time();
+  music_sd_ready = SD.begin(MUSIC_SD_CS);
+  if (!music_sd_ready) {
+    Serial.println(F("Carte SD indisponible : le menu sonnerie restera vide."));
+  }
   init_styles();
   create_main_screen();
 }
@@ -681,8 +704,152 @@ static void menu_button_event_cb(lv_event_t *event) {
 
 static void show_menu_screen() {
   current_screen = AppScreen::Menu;
-  Serial.println(F("Ouverture future de l'ecran MENU"));
-  // TODO : créer un écran menu dédié puis appeler lv_screen_load(menu_screen).
+  scan_music_directory();
+
+  menu_screen = lv_obj_create(nullptr);
+  lv_obj_remove_style_all(menu_screen);
+  lv_obj_add_style(menu_screen, &style_dark_panel, 0);
+  lv_obj_set_size(menu_screen, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+  lv_obj_t *title = lv_label_create(menu_screen);
+  lv_obj_add_style(title, &style_caption_text, 0);
+  lv_label_set_text(title, "CHOIX SONNERIE REVEIL");
+  lv_obj_set_pos(title, 18, 16);
+
+  lv_obj_t *count_label = lv_label_create(menu_screen);
+  lv_obj_add_style(count_label, &style_caption_text, 0);
+  char count_text[18];
+  snprintf(count_text, sizeof(count_text), "%u musique%s", music_count, music_count > 1 ? "s" : "");
+  lv_label_set_text(count_label, count_text);
+  lv_obj_align(count_label, LV_ALIGN_TOP_RIGHT, -18, 16);
+
+  lv_obj_t *divider = lv_obj_create(menu_screen);
+  lv_obj_remove_style_all(divider);
+  lv_obj_set_style_bg_color(divider, lv_color_hex(0x1C2338), 0);
+  lv_obj_set_style_bg_opa(divider, LV_OPA_COVER, 0);
+  lv_obj_set_pos(divider, 0, 39);
+  lv_obj_set_size(divider, SCREEN_WIDTH, 1);
+
+  lv_obj_t *music_list = lv_obj_create(menu_screen);
+  lv_obj_remove_style_all(music_list);
+  lv_obj_set_pos(music_list, 18, 49);
+  lv_obj_set_size(music_list, 448, 220);
+  lv_obj_set_scroll_dir(music_list, LV_DIR_VER);
+  lv_obj_set_scrollbar_mode(music_list, LV_SCROLLBAR_MODE_AUTO);
+
+  if (!music_sd_ready || music_count == 0) {
+    lv_obj_t *empty_label = lv_label_create(music_list);
+    lv_obj_add_style(empty_label, &style_date_text, 0);
+    lv_label_set_text(empty_label, music_sd_ready
+      ? "Ajoutez des fichiers audio dans /musiques"
+      : "Carte SD indisponible");
+    lv_obj_align(empty_label, LV_ALIGN_CENTER, 0, -5);
+  }
+
+  for (uint8_t index = 0; index < music_count; index++) {
+    lv_obj_t *row = lv_obj_create(music_list);
+    lv_obj_remove_style_all(row);
+    lv_obj_add_style(row, &style_alarm_row, 0);
+    if (selected_music_index == static_cast<int8_t>(index)) {
+      lv_obj_set_style_border_color(row, lv_color_hex(0x6FA7FF), 0);
+    }
+    lv_obj_set_pos(row, 0, index * 57);
+    lv_obj_set_size(row, 448, 50);
+
+    lv_obj_t *name = lv_label_create(row);
+    lv_obj_add_style(name, &style_button_text, 0);
+    lv_label_set_text(name, music_display_name(music_paths[index]));
+    lv_obj_set_pos(name, 12, 7);
+    lv_obj_set_width(name, 235);
+    lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
+
+    lv_obj_t *status = lv_label_create(row);
+    lv_obj_add_style(status, &style_caption_text, 0);
+    lv_label_set_text(status, selected_music_index == static_cast<int8_t>(index) ? "SONNERIE SELECTIONNEE" : "DISPONIBLE");
+    lv_obj_set_pos(status, 12, 29);
+
+    lv_obj_t *preview_button = lv_btn_create(row);
+    lv_obj_remove_style_all(preview_button);
+    lv_obj_add_style(preview_button, &style_outline_button, 0);
+    lv_obj_set_pos(preview_button, 264, 10);
+    lv_obj_set_size(preview_button, 76, 30);
+    lv_obj_add_event_cb(preview_button, music_preview_event_cb, LV_EVENT_CLICKED, reinterpret_cast<void *>(static_cast<uintptr_t>(index)));
+    create_button_label(preview_button, "ECOUTER");
+
+    lv_obj_t *select_button = lv_btn_create(row);
+    lv_obj_remove_style_all(select_button);
+    lv_obj_add_style(select_button, &style_outline_button, 0);
+    lv_obj_set_pos(select_button, 347, 10);
+    lv_obj_set_size(select_button, 88, 30);
+    lv_obj_add_event_cb(select_button, music_select_event_cb, LV_EVENT_CLICKED, reinterpret_cast<void *>(static_cast<uintptr_t>(index)));
+    create_button_label(select_button, "CHOISIR");
+  }
+
+  lv_obj_t *back_button = lv_btn_create(menu_screen);
+  lv_obj_remove_style_all(back_button);
+  lv_obj_add_style(back_button, &style_outline_button, 0);
+  lv_obj_set_pos(back_button, 18, 282);
+  lv_obj_set_size(back_button, 106, 30);
+  lv_obj_add_event_cb(back_button, back_to_main_event_cb, LV_EVENT_CLICKED, nullptr);
+  create_button_label(back_button, "<- RETOUR");
+
+  load_screen(menu_screen);
+}
+
+static void scan_music_directory() {
+  music_count = 0;
+  if (!music_sd_ready) return;
+
+  File directory = SD.open(MUSIC_DIRECTORY);
+  if (!directory || !directory.isDirectory()) {
+    Serial.println(F("Dossier /musiques introuvable sur la carte SD."));
+    return;
+  }
+
+  File entry = directory.openNextFile();
+  while (entry && music_count < MAX_MUSIC_TRACKS) {
+    if (!entry.isDirectory() && is_supported_music_file(entry.name())) {
+      snprintf(music_paths[music_count], MUSIC_PATH_LENGTH, "%s/%s", MUSIC_DIRECTORY, entry.name());
+      music_count++;
+    }
+    entry.close();
+    entry = directory.openNextFile();
+  }
+  directory.close();
+}
+
+static bool is_supported_music_file(const char *name) {
+  String lower_name(name);
+  lower_name.toLowerCase();
+  return lower_name.endsWith(".mp3") || lower_name.endsWith(".wav") ||
+         lower_name.endsWith(".ogg") || lower_name.endsWith(".m4a") ||
+         lower_name.endsWith(".aac") || lower_name.endsWith(".flac");
+}
+
+static const char *music_display_name(const char *path) {
+  const char *last_separator = strrchr(path, '/');
+  return last_separator == nullptr ? path : last_separator + 1;
+}
+
+// Point d'intégration à relier au décodeur/I2S de la carte utilisée.
+static void play_music_preview(const char *path) {
+  Serial.print(F("Lecture sonnerie : "));
+  Serial.println(path);
+}
+
+static void music_preview_event_cb(lv_event_t *event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  const uintptr_t index = reinterpret_cast<uintptr_t>(lv_event_get_user_data(event));
+  if (index < music_count) play_music_preview(music_paths[index]);
+}
+
+static void music_select_event_cb(lv_event_t *event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  const uintptr_t index = reinterpret_cast<uintptr_t>(lv_event_get_user_data(event));
+  if (index < music_count) {
+    selected_music_index = static_cast<int8_t>(index);
+    show_menu_screen();
+  }
 }
 
 static void show_alarm_settings_screen() {
