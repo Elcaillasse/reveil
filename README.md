@@ -26,6 +26,7 @@ L'interface principale reprend une composition type réveil nocturne :
 - La page `MENU` affiche un bouton `SONNERIE` avec le choix actuel et le nombre de sonneries disponibles ; ce bouton ouvre la liste permettant d'écouter et de choisir une sonnerie.
 - Le bouton `REVEIL` ouvre maintenant une liste dédiée avec plusieurs réveils, interrupteurs d'activation, suppression et bouton `AJOUTER`.
 - Le bouton `AJOUTER` ouvre un formulaire `NOUVEAU RÉVEIL` permettant de choisir l'heure, les minutes et les jours cochés avant l'enregistrement.
+- À l'heure programmée, un réveil actif lance automatiquement la sonnerie choisie. Dans la prévisualisation, elle joue en boucle jusqu'à l'appui sur `ARRÊTER LA SONNERIE`.
 
 ## Prévisualisation PC
 
@@ -54,7 +55,7 @@ Le fichier `reveil.ino` contient :
 - un écran `REVEILS` listant les alarmes enregistrées ;
 - un écran `NOUVEAU REVEIL` pour ajouter une alarme avec choix de l'heure, des minutes et des jours ;
 - un écran `MENU` avec un sous-menu `SONNERIE` qui parcourt `/musiques` sur une carte SD, propose les fichiers audio reconnus et mémorise le choix courant ;
-- un point d’intégration `play_music_preview()` à relier au décodeur audio / périphérique I2S propre à la carte pour la préécoute matérielle ;
+- un point d’intégration `play_music_preview()` appelé pour la préécoute et pour le déclenchement automatique du réveil, à relier au décodeur audio / périphérique I2S propre à la carte ;
 - un emplacement `read_touchscreen()` à adapter au contrôleur tactile réel.
 
 ## À adapter au matériel
@@ -75,4 +76,4 @@ static bool read_touchscreen(uint16_t *x, uint16_t *y) {
 
 Le sketch utilise le lecteur SD intégré à l’ESP32 avec la broche CS `MUSIC_SD_CS` (valeur par défaut : `10`). Adaptez cette constante à votre câblage et placez les fichiers dans `/musiques` sur la carte SD. Les extensions reconnues sont `.mp3`, `.wav`, `.ogg`, `.m4a`, `.aac` et `.flac`.
 
-La sortie audio dépendant fortement du matériel utilisé (DAC, amplificateur, broches I2S et bibliothèque de décodage), `play_music_preview()` journalise actuellement le morceau demandé. Reliez cette fonction à votre pilote audio pour obtenir la préécoute sur le réveil physique.
+La sortie audio dépendant fortement du matériel utilisé (DAC, amplificateur, broches I2S et bibliothèque de décodage), `play_music_preview()` journalise actuellement le morceau demandé. Elle est appelée lors de la préécoute et lorsque l'heure d'un réveil actif est atteinte. Reliez cette fonction à votre pilote audio pour obtenir la lecture sur le réveil physique.

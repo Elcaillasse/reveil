@@ -142,6 +142,7 @@ static char music_paths[MAX_MUSIC_TRACKS][MUSIC_PATH_LENGTH] = {};
 static uint8_t music_count = 0;
 static int8_t selected_music_index = -1;
 static bool music_sd_ready = false;
+static uint64_t last_triggered_alarm_minute = UINT64_MAX;
 
 struct AlarmState {
   uint8_t hour = 8;
@@ -191,6 +192,7 @@ static void scan_music_directory();
 static bool is_supported_music_file(const char *name);
 static const char *music_display_name(const char *path);
 static void play_music_preview(const char *path);
+static void trigger_due_alarm();
 static void show_alarm_editor_screen();
 static void create_alarm_row(lv_obj_t *parent, uint8_t index);
 static void alarm_edit_event_cb(lv_event_t *event);
@@ -437,6 +439,8 @@ void update_clock_display() {
     clock_state.last_tick_ms += 1000;
     tick_clock_one_second();
   }
+
+  trigger_due_alarm();
 
   static int16_t previous_minute = -1;
   static uint8_t previous_day = 0;
@@ -920,9 +924,32 @@ static const char *music_display_name(const char *path) {
 }
 
 // Point d'intégration à relier au décodeur/I2S de la carte utilisée.
+// Cette même fonction est utilisée pour la préécoute et au déclenchement du réveil.
 static void play_music_preview(const char *path) {
   Serial.print(F("Lecture sonnerie : "));
   Serial.println(path);
+}
+
+static void trigger_due_alarm() {
+  const uint64_t minute_key = (((((static_cast<uint64_t>(clock_state.year) * 13) + clock_state.month) * 32 +
+                                  clock_state.day) * 24 + clock_state.hour) * 60) + clock_state.minute;
+  if (minute_key == last_triggered_alarm_minute) return;
+
+  const uint8_t today = weekday_from_date(clock_state.year, clock_state.month, clock_state.day);
+  for (uint8_t index = 0; index < alarm_count; index++) {
+    const AlarmState &alarm = alarms[index];
+    if (!alarm.enabled || !alarm.days[today] || alarm.hour != clock_state.hour || alarm.minute != clock_state.minute) {
+      continue;
+    }
+
+    last_triggered_alarm_minute = minute_key;
+    if (selected_music_index >= 0 && selected_music_index < static_cast<int8_t>(music_count)) {
+      play_music_preview(music_paths[selected_music_index]);
+    } else {
+      Serial.println(F("Reveil declenche, mais aucune sonnerie n'est selectionnee."));
+    }
+    return;
+  }
 }
 
 static void music_preview_event_cb(lv_event_t *event) {

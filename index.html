@@ -310,6 +310,25 @@
     .music-action { height: 30px; border: 1px solid #42465f; border-radius: 7px; background: #101120; color: #fff; font-size: 9px; font-weight: 800; }
     .music-action.choose { color: #ffe8a6; border-color: rgb(255 176 0 / 55%); }
     .music-action.playing { color: #a9d6ff; border-color: var(--blue); }
+
+    .ringing-alert {
+      position: absolute;
+      z-index: 10;
+      left: 50%;
+      top: 50%;
+      width: 310px;
+      padding: 18px;
+      border: 1px solid rgb(255 176 0 / 85%);
+      border-radius: 12px;
+      background: rgb(20 13 3 / 96%);
+      box-shadow: 0 0 36px rgb(255 176 0 / 40%);
+      color: #ffe8a6;
+      text-align: center;
+      transform: translate(-50%, -50%);
+    }
+    .ringing-title { font-size: 16px; font-weight: 900; letter-spacing: 2px; }
+    .ringing-track { margin: 9px 0 14px; overflow: hidden; color: var(--foreground); font-size: 11px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .stop-alarm-button { height: 34px; padding: 0 24px; border: 1px solid rgb(255 176 0 / 80%); border-radius: 7px; background: #2b1d05; color: #ffe8a6; font-size: 10px; font-weight: 900; letter-spacing: 1px; }
   </style>
 </head>
 <body>
@@ -338,6 +357,11 @@
     <section id="editPage" class="app-page hidden" aria-label="Nouveau réveil"></section>
     <section id="menuPage" class="app-page hidden" aria-label="Menu et choix de la sonnerie"></section>
     <input id="musicFolderInput" class="hidden" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" multiple webkitdirectory>
+    <aside id="ringingAlert" class="ringing-alert hidden" role="alert" aria-live="assertive">
+      <div class="ringing-title">RÉVEIL EN COURS</div>
+      <div id="ringingTrack" class="ringing-track"></div>
+      <button id="stopAlarmButton" class="stop-alarm-button" type="button">ARRÊTER LA SONNERIE</button>
+    </aside>
   </main>
 
   <script>
@@ -351,6 +375,9 @@
     const editPage = document.getElementById('editPage');
     const menuPage = document.getElementById('menuPage');
     const musicFolderInput = document.getElementById('musicFolderInput');
+    const ringingAlert = document.getElementById('ringingAlert');
+    const ringingTrack = document.getElementById('ringingTrack');
+    const stopAlarmButton = document.getElementById('stopAlarmButton');
     const weekdays = ['DIMANCHE', 'LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI'];
     const months = ['JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
     const shortDays = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
@@ -364,6 +391,8 @@
     let musicTracks = [];
     let playingAudio = null;
     let playingTrackName = '';
+    let alarmAudio = null;
+    let lastTriggeredAlarmKey = '';
 
     function twoDigits(value) { return String(value).padStart(2, '0'); }
     function formatTime(alarm) { return `${twoDigits(alarm.hour)}:${twoDigits(alarm.minute)}`; }
@@ -411,6 +440,44 @@
       return nextAlarm;
     }
 
+    function stopAlarm() {
+      if (alarmAudio) {
+        alarmAudio.pause();
+        alarmAudio.currentTime = 0;
+      }
+      alarmAudio = null;
+      ringingAlert.classList.add('hidden');
+    }
+
+    async function triggerDueAlarm(now) {
+      const dueAlarmIndex = alarms.findIndex(alarm => alarm.enabled
+        && alarm.days[now.getDay()]
+        && alarm.hour === now.getHours()
+        && alarm.minute === now.getMinutes());
+      if (dueAlarmIndex < 0) return;
+
+      const occurrenceKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}-${dueAlarmIndex}`;
+      if (occurrenceKey === lastTriggeredAlarmKey) return;
+
+      const selectedTrack = musicTracks.find(track => track.name === selectedRingtone);
+      if (!selectedTrack) return;
+
+      lastTriggeredAlarmKey = occurrenceKey;
+      stopPreview();
+      stopAlarm();
+      alarmAudio = new Audio(selectedTrack.url);
+      alarmAudio.loop = true;
+      ringingTrack.textContent = selectedTrack.label;
+      ringingAlert.classList.remove('hidden');
+
+      try {
+        await alarmAudio.play();
+      } catch (error) {
+        console.warn('Lecture de la sonnerie impossible', error);
+        ringingTrack.textContent = `${selectedTrack.label} · lecture audio bloquée par le navigateur`;
+      }
+    }
+
     function updateClockDisplay() {
       const now = new Date();
       clockLabel.textContent = `${twoDigits(now.getHours())}:${twoDigits(now.getMinutes())}`;
@@ -418,6 +485,7 @@
       const nextAlarm = findNextActiveAlarm(now);
       alarmTimeLabel.textContent = nextAlarm ? formatTime(nextAlarm) : '--:--';
       alarmDaysLabel.textContent = nextAlarm ? formatDays(nextAlarm) : 'AUCUN';
+      triggerDueAlarm(now);
     }
 
     const supportedMusicPattern = /\.(mp3|wav|ogg|m4a|aac|flac)$/i;
@@ -667,9 +735,11 @@
       renderEditor();
     }
 
+    stopAlarmButton.addEventListener('click', stopAlarm);
     alarmButton.addEventListener('click', () => { renderAlarmList(); setPage('list'); });
     document.getElementById('menuButton').addEventListener('click', async () => { await loadMusicManifest(); renderMainMenu(); setPage('menu'); });
     renderMainMenu();
+    loadMusicManifest().then(updateClockDisplay);
     updateClockDisplay();
     setInterval(updateClockDisplay, 1000);
   </script>
