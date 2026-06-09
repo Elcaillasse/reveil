@@ -288,6 +288,11 @@
     .day-button { position: static; width: 35px; height: 26px; padding: 0; }
     .day-button.checked { border-color: var(--blue-soft); background: #172a54; }
 
+    .menu-list { position: absolute; left: 18px; right: 18px; top: 50px; display: grid; gap: 8px; }
+    .submenu-button { min-height: 58px; padding: 10px 14px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--card); color: var(--foreground); text-align: left; }
+    .submenu-title { display: block; color: #a9d6ff; font-size: 12px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+    .submenu-description { display: block; margin-top: 6px; color: var(--muted); font-size: 9px; font-weight: 700; }
+
     .music-toolbar { position: absolute; left: 18px; right: 18px; top: 50px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .music-help { flex: 1; color: var(--muted); font-size: 8px; line-height: 1.4; letter-spacing: 0.4px; }
     .music-toolbar-actions { display: flex; gap: 6px; }
@@ -329,7 +334,7 @@
 
     <section id="listPage" class="app-page hidden" aria-label="Liste des réveils"></section>
     <section id="editPage" class="app-page hidden" aria-label="Nouveau réveil"></section>
-    <section id="menuPage" class="app-page hidden" aria-label="Choix de la sonnerie"></section>
+    <section id="menuPage" class="app-page hidden" aria-label="Menu et choix de la sonnerie"></section>
     <input id="musicFolderInput" class="hidden" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" multiple webkitdirectory>
   </main>
 
@@ -436,6 +441,27 @@
       playingTrackName = '';
     }
 
+    function renderMainMenu() {
+      menuPage.innerHTML = `
+        <div class="page-title">MENU</div>
+        <div class="page-line"></div>
+        <div class="menu-list">
+          <button class="submenu-button" data-action="ringtone" type="button">
+            <span class="submenu-title">SONNERIE</span>
+            <span class="submenu-description">Choisir et écouter la sonnerie du réveil</span>
+          </button>
+        </div>
+        <div class="page-footer-line"></div>
+        <button class="nav-button left" data-action="home" type="button">← RETOUR</button>
+      `;
+
+      menuPage.querySelector('[data-action="home"]').addEventListener('click', () => setPage('home'));
+      menuPage.querySelector('[data-action="ringtone"]').addEventListener('click', async () => {
+        await loadMusicManifest();
+        renderMusicMenu();
+      });
+    }
+
     function renderMusicMenu() {
       menuPage.innerHTML = `
         <div class="page-title">CHOIX SONNERIE RÉVEIL</div>
@@ -457,10 +483,10 @@
             </article>`).join('') : '<div class="music-empty">Aucune musique trouvée.<br>Ajoutez des fichiers audio dans le dossier musiques<br>ou ouvrez un dossier depuis cet écran.</div>'}
         </div>
         <div class="page-footer-line"></div>
-        <button class="nav-button left" data-action="home" type="button">← RETOUR</button>
+        <button class="nav-button left" data-action="menu" type="button">← RETOUR</button>
       `;
 
-      menuPage.querySelector('[data-action="home"]').addEventListener('click', () => setPage('home'));
+      menuPage.querySelector('[data-action="menu"]').addEventListener('click', () => { stopPreview(); renderMainMenu(); });
       menuPage.querySelector('[data-action="sync"]').addEventListener('click', async button => {
         button.currentTarget.disabled = true;
         button.currentTarget.textContent = 'SYNCHRO...';
@@ -635,8 +661,8 @@
     }
 
     alarmButton.addEventListener('click', () => { renderAlarmList(); setPage('list'); });
-    document.getElementById('menuButton').addEventListener('click', async () => { setPage('menu'); await loadMusicManifest(); renderMusicMenu(); });
-    loadMusicManifest().then(renderMusicMenu);
+    document.getElementById('menuButton').addEventListener('click', () => { renderMainMenu(); setPage('menu'); });
+    renderMainMenu();
     updateClockDisplay();
     setInterval(updateClockDisplay, 1000);
   </script>

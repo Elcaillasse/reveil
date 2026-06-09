@@ -127,6 +127,7 @@ static lv_style_t style_time_picker_text;
 enum class AppScreen : uint8_t {
   Main,
   Menu,
+  Ringtone,
   AlarmSettings
 };
 
@@ -184,6 +185,7 @@ static void create_sky_background(lv_obj_t *parent);
 static void create_button_label(lv_obj_t *button, const char *text);
 static uint8_t weekday_from_date(uint16_t year, uint8_t month, uint8_t day);
 static void show_menu_screen();
+static void show_ringtone_screen();
 static void show_alarm_settings_screen();
 static void scan_music_directory();
 static bool is_supported_music_file(const char *name);
@@ -200,6 +202,8 @@ static void refresh_next_alarm();
 static void load_screen(lv_obj_t *screen);
 static void alarm_button_event_cb(lv_event_t *event);
 static void menu_button_event_cb(lv_event_t *event);
+static void ringtone_menu_event_cb(lv_event_t *event);
+static void back_to_menu_event_cb(lv_event_t *event);
 static void music_preview_event_cb(lv_event_t *event);
 static void music_select_event_cb(lv_event_t *event);
 static void back_to_main_event_cb(lv_event_t *event);
@@ -702,8 +706,68 @@ static void menu_button_event_cb(lv_event_t *event) {
   }
 }
 
+static void ringtone_menu_event_cb(lv_event_t *event) {
+  if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+    show_ringtone_screen();
+  }
+}
+
+static void back_to_menu_event_cb(lv_event_t *event) {
+  if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
+    show_menu_screen();
+  }
+}
+
 static void show_menu_screen() {
   current_screen = AppScreen::Menu;
+
+  menu_screen = lv_obj_create(nullptr);
+  lv_obj_remove_style_all(menu_screen);
+  lv_obj_add_style(menu_screen, &style_dark_panel, 0);
+  lv_obj_set_size(menu_screen, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+  lv_obj_t *title = lv_label_create(menu_screen);
+  lv_obj_add_style(title, &style_caption_text, 0);
+  lv_label_set_text(title, "MENU");
+  lv_obj_set_pos(title, 18, 16);
+
+  lv_obj_t *divider = lv_obj_create(menu_screen);
+  lv_obj_remove_style_all(divider);
+  lv_obj_set_style_bg_color(divider, lv_color_hex(0x1C2338), 0);
+  lv_obj_set_style_bg_opa(divider, LV_OPA_COVER, 0);
+  lv_obj_set_pos(divider, 0, 39);
+  lv_obj_set_size(divider, SCREEN_WIDTH, 1);
+
+  lv_obj_t *ringtone_button = lv_btn_create(menu_screen);
+  lv_obj_remove_style_all(ringtone_button);
+  lv_obj_add_style(ringtone_button, &style_alarm_row, 0);
+  lv_obj_set_pos(ringtone_button, 18, 50);
+  lv_obj_set_size(ringtone_button, 448, 58);
+  lv_obj_add_event_cb(ringtone_button, ringtone_menu_event_cb, LV_EVENT_CLICKED, nullptr);
+
+  lv_obj_t *ringtone_title = lv_label_create(ringtone_button);
+  lv_obj_add_style(ringtone_title, &style_button_text, 0);
+  lv_label_set_text(ringtone_title, "SONNERIE");
+  lv_obj_set_pos(ringtone_title, 14, 10);
+
+  lv_obj_t *ringtone_description = lv_label_create(ringtone_button);
+  lv_obj_add_style(ringtone_description, &style_caption_text, 0);
+  lv_label_set_text(ringtone_description, "Choisir et ecouter la sonnerie du reveil");
+  lv_obj_set_pos(ringtone_description, 14, 34);
+
+  lv_obj_t *back_button = lv_btn_create(menu_screen);
+  lv_obj_remove_style_all(back_button);
+  lv_obj_add_style(back_button, &style_outline_button, 0);
+  lv_obj_set_pos(back_button, 18, 282);
+  lv_obj_set_size(back_button, 106, 30);
+  lv_obj_add_event_cb(back_button, back_to_main_event_cb, LV_EVENT_CLICKED, nullptr);
+  create_button_label(back_button, "<- RETOUR");
+
+  load_screen(menu_screen);
+}
+
+static void show_ringtone_screen() {
+  current_screen = AppScreen::Ringtone;
   scan_music_directory();
 
   menu_screen = lv_obj_create(nullptr);
@@ -790,7 +854,7 @@ static void show_menu_screen() {
   lv_obj_add_style(back_button, &style_outline_button, 0);
   lv_obj_set_pos(back_button, 18, 282);
   lv_obj_set_size(back_button, 106, 30);
-  lv_obj_add_event_cb(back_button, back_to_main_event_cb, LV_EVENT_CLICKED, nullptr);
+  lv_obj_add_event_cb(back_button, back_to_menu_event_cb, LV_EVENT_CLICKED, nullptr);
   create_button_label(back_button, "<- RETOUR");
 
   load_screen(menu_screen);
@@ -848,7 +912,7 @@ static void music_select_event_cb(lv_event_t *event) {
   const uintptr_t index = reinterpret_cast<uintptr_t>(lv_event_get_user_data(event));
   if (index < music_count) {
     selected_music_index = static_cast<int8_t>(index);
-    show_menu_screen();
+    show_ringtone_screen();
   }
 }
 

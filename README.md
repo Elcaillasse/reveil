@@ -52,7 +52,7 @@ Le fichier `reveil.ino` contient :
 - l'affichage dynamique de l'heure, de la date et du prochain réveil actif à déclencher ;
 - un écran `REVEILS` listant les alarmes enregistrées ;
 - un écran `NOUVEAU REVEIL` pour ajouter une alarme avec choix de l'heure, des minutes et des jours ;
-- un écran `MENU` qui parcourt `/musiques` sur une carte SD, propose les fichiers audio reconnus et mémorise le choix courant ;
+- un écran `MENU` avec un sous-menu `SONNERIE` qui parcourt `/musiques` sur une carte SD, propose les fichiers audio reconnus et mémorise le choix courant ;
 - un point d’intégration `play_music_preview()` à relier au décodeur audio / périphérique I2S propre à la carte pour la préécoute matérielle ;
 - un emplacement `read_touchscreen()` à adapter au contrôleur tactile réel.
 
