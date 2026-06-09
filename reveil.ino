@@ -830,7 +830,7 @@ static void show_ringtone_screen() {
   lv_obj_set_pos(ringtone_music_list, 18, 49);
   lv_obj_set_size(ringtone_music_list, 448, 220);
   lv_obj_set_scroll_dir(ringtone_music_list, LV_DIR_VER);
-  lv_obj_set_scrollbar_mode(ringtone_music_list, LV_SCROLLBAR_MODE_AUTO);
+  lv_obj_set_scrollbar_mode(ringtone_music_list, LV_SCROLLBAR_MODE_OFF);
 
   if (!music_sd_ready || music_count == 0) {
     lv_obj_t *empty_label = lv_label_create(ringtone_music_list);
@@ -853,8 +853,8 @@ static void show_ringtone_screen() {
 
     lv_obj_t *name = lv_label_create(row);
     lv_obj_add_style(name, &style_button_text, 0);
-#if LV_FONT_MONTSERRAT_10
-    lv_obj_set_style_text_font(name, &lv_font_montserrat_10, 0);
+#if LV_FONT_MONTSERRAT_12
+    lv_obj_set_style_text_font(name, &lv_font_montserrat_12, 0);
 #endif
     lv_label_set_text(name, music_display_name(music_paths[index]));
     lv_obj_set_pos(name, 12, 7);
@@ -863,8 +863,8 @@ static void show_ringtone_screen() {
 
     lv_obj_t *status = lv_label_create(row);
     lv_obj_add_style(status, &style_caption_text, 0);
-#if LV_FONT_MONTSERRAT_8
-    lv_obj_set_style_text_font(status, &lv_font_montserrat_8, 0);
+#if LV_FONT_MONTSERRAT_10
+    lv_obj_set_style_text_font(status, &lv_font_montserrat_10, 0);
 #endif
     lv_obj_set_style_text_letter_space(status, 1, 0);
     lv_label_set_text(status, selected_music_index == static_cast<int8_t>(index) ? "SONNERIE SELECTIONNEE" : "DISPONIBLE");
