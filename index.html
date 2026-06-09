@@ -296,18 +296,19 @@
     .submenu-description { display: block; margin-top: 5px; color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: 0.4px; }
 
     .music-toolbar { position: absolute; left: 18px; right: 18px; top: 50px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .music-help { flex: 1; color: var(--muted); font-size: 8px; line-height: 1.4; letter-spacing: 0.4px; }
+    .music-help { flex: 1; color: var(--muted); font-size: 9px; line-height: 1.4; letter-spacing: 0.4px; }
     .music-toolbar-actions { display: flex; gap: 6px; }
     .sync-button, .folder-button { position: static; color: #a9d6ff; border-color: rgb(45 135 205 / 75%); background: rgb(10 33 59 / 86%); }
     .sync-button { width: 105px; }
     .folder-button { width: 128px; }
-    .music-list { position: absolute; left: 18px; right: 18px; top: 96px; bottom: 50px; display: grid; gap: 7px; overflow: auto; scroll-behavior: smooth; }
+    .music-list { position: absolute; left: 18px; right: 18px; top: 96px; bottom: 50px; display: grid; gap: 7px; overflow: auto; scrollbar-width: none; scroll-behavior: smooth; }
+    .music-list::-webkit-scrollbar { display: none; }
     .music-empty { display: grid; place-items: center; height: 100%; border: 1px dashed var(--card-border); border-radius: 8px; color: var(--muted); font-size: 10px; text-align: center; line-height: 1.6; }
     .music-row { min-height: 48px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 7px 9px 7px 12px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--card); }
     .music-row.selected { border-color: var(--blue-soft); background: #101938; }
-    .music-name { overflow: hidden; color: var(--foreground); font-size: 9px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-    .music-status { margin-top: 4px; color: var(--blue-soft); font-size: 7px; font-weight: 700; letter-spacing: 0.7px; }
-    .music-action { height: 30px; border: 1px solid #42465f; border-radius: 7px; background: #101120; color: #fff; font-size: 8px; font-weight: 800; }
+    .music-name { overflow: hidden; color: var(--foreground); font-size: 10px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .music-status { margin-top: 4px; color: var(--blue-soft); font-size: 8px; font-weight: 700; letter-spacing: 0.7px; }
+    .music-action { height: 30px; border: 1px solid #42465f; border-radius: 7px; background: #101120; color: #fff; font-size: 9px; font-weight: 800; }
     .music-scroll-controls { position: absolute; right: 18px; bottom: 8px; display: flex; gap: 6px; }
     .music-scroll-button { position: static; width: 42px; padding: 0; color: #a9d6ff; border-color: rgb(45 135 205 / 75%); background: rgb(10 33 59 / 86%); font-size: 13px; }
     .music-action.choose { color: #ffe8a6; border-color: rgb(255 176 0 / 55%); }
